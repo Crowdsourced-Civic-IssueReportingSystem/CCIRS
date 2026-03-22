@@ -14,6 +14,7 @@ import transparencyRoutes from "./routes/transparencyFirebase";
 
 const app: Express = express();
 const PORT = process.env.PORT || 3002;
+const IS_VERCEL = process.env.VERCEL === "1";
 
 // Middleware
 app.use(helmet());
@@ -21,13 +22,13 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(morgan("combined"));
 app.use(express.json());
 
-// Serve frontend files (index.html, app.js, styles.css)
-app.use(express.static(path.resolve(__dirname, "../")));
-
-// Frontend entry point
-app.get("/", (req: Request, res: Response) => {
-  res.sendFile(path.resolve(__dirname, "../index.html"));
-});
+// Serve local frontend files only when running as a standalone server.
+if (!IS_VERCEL) {
+  app.use(express.static(path.resolve(__dirname, "../")));
+  app.get("/", (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../index.html"));
+  });
+}
 
 // Health check (support both direct and /api-prefixed paths)
 app.get(["/health", "/api/health"], (req: Request, res: Response) => {
@@ -54,13 +55,13 @@ app.use((req: Request, res: Response) => {
 });
 
 // Error handler
-app.use((error: any, req: Request, res: Response) => {
+app.use((error: any, req: Request, res: Response, _next: any) => {
   console.error("Unhandled error:", error);
   res.status(500).json({ error: "Internal server error" });
 });
 
 // Vercel serverless functions should export the app without opening a listener.
-if (process.env.VERCEL !== "1") {
+if (!IS_VERCEL) {
   app.listen(PORT, () => {
     console.log(`CCIRS Backend running on port ${PORT}`);
     console.log("API Documentation:");
