@@ -9,6 +9,7 @@ import transparencyRoutes from "./routes/transparency";
 // import { prisma } from "./db";
 
 const app = express();
+const IS_VERCEL = process.env.VERCEL === "1";
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json({ limit: "2mb" }));
@@ -29,6 +30,10 @@ app.use("/transparency", transparencyRoutes);
 
 app.use((_, res) => res.status(404).json({ message: "Not found" }));
 
-app.listen(config.port, () => {
-  console.log(`API running on http://localhost:${config.port}`);
-});
+if (!IS_VERCEL) {
+  app.listen(config.port, () => {
+    console.log(`API running on http://localhost:${config.port}`);
+  });
+}
+
+export default app;

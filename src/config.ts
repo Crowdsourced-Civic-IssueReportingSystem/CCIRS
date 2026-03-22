@@ -14,7 +14,8 @@ export const config = {
   port: Number(process.env.PORT ?? 3002),
   corsOrigin: process.env.CORS_ORIGIN ?? "*",
   nodeEnv: process.env.NODE_ENV ?? "development",
-  dbUrl: required("DATABASE_URL"),
+  // Optional for Firebase/Firestore deployments (e.g., Vercel serverless path).
+  dbUrl: process.env.DATABASE_URL ?? "",
   firebase: {
     serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON ?? "",
     projectId: process.env.FIREBASE_PROJECT_ID ?? "",
