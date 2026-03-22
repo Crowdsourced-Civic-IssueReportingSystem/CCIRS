@@ -1,217 +1,68 @@
-# CCIRS - Crowdsourced Civic Issue Reporting System
+# Project Analysis: Crowdsourced Civic Issue Reporting and Resolution System
 
-A full-stack web application for reporting and managing civic issues in your community.
+## Executive Summary
 
-## 📂 Project Structure
-
-```
-CCIRS/
-├── backend/             # TypeScript/Express API (main backend)
-│   ├── src/
-│   ├── prisma/
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── frontend/            # Web UI (HTML/CSS/JS)
-│   ├── index.html
-│   ├── app.js
-│   ├── styles.css
-│   └── README.md
-│
-└── README.md           # This file
-```
-
-## 🚀 Quick Start
-
-### Backend (TypeScript/Express API)
-
-Navigate to the backend directory:
-
-```bash
-cd .
-npm install
-cp .env.example .env
-npx prisma migrate dev
-npm run dev
-```
-
-API runs at: `http://localhost:3000`
-
-**Key endpoints:**
-- `POST /auth/register` - Register account
-- `POST /auth/login` - Login
-- `POST /issues` - Create issue (auth required)
-- `GET /issues` - List issues
-- `GET /issues/:id` - Issue details
-
-### Frontend (HTML/CSS/JavaScript)
-
-Open in a local web server:
-
-```bash
-cd frontend
-# Using Python 3:
-python -m http.server 8000
-
-# Or using Node http-server:
-npx http-server
-```
-
-Access at: `http://localhost:8000` (or `http://localhost:5500` if using Live Server)
-
-**Configure API endpoint** in `frontend/app.js`:
-```javascript
-const API_BASE_URL = 'http://localhost:3000';
-```
-
-## 🔐 Authentication
-
-- Register with email/password
-- Login to get JWT tokens
-- Token stored in browser localStorage
-- Protected API routes require Bearer token in Authorization header
-
-## 📊 Features
-
-### Users Can
-- ✅ Register & login
-- ✅ Report civic issues with location (lat/lon)
-- ✅ View all reported issues
-- ✅ Comment on issues
-- ✅ Upvote/downvote issues
-- ✅ Auto-detect location using geolocation
-
-### Issues Include
-- Title, description, category
-- Severity (LOW, MEDIUM, HIGH)
-- Status (PENDING, APPROVED, REJECTED, IN_PROGRESS, RESOLVED)
-- Geographic coordinates (latitude/longitude)
-- Optional address
-- Media attachments
-- Timestamps
-
-## 🗄️ Database
-
-- **Development**: SQLite (`dev.db`)
-- **Production**: PostgreSQL (configure in `.env`)
-
-See [Backend README](./README.md) for database details.
-
-## 🛠️ Tech Stack
-
-**Backend:**
-- TypeScript
-- Express.js
-- Prisma ORM
-- SQLite / PostgreSQL
-- JWT authentication
-- Zod validation
-
-**Frontend:**
-- HTML5
-- CSS3
-- Vanilla JavaScript
-- Bootstrap 5
-- Geolocation API
-
-## 📝 Environment Setup
-
-### Backend `.env`
-```env
-DATABASE_URL=file:./dev.db
-JWT_ACCESS_SECRET=your-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret
-PORT=3000
-CORS_ORIGIN=http://localhost:8000
-```
-
-### Frontend Configuration
-Edit `frontend/app.js` line ~1:
-```javascript
-const API_BASE_URL = 'http://localhost:3000';
-```
-
-## 🔄 Data Flow
-
-1. **User Registration/Login** → Backend validates → JWT tokens returned
-2. **Issue Creation** → Frontend sends auth token → Backend validates & stores
-3. **Issue Listing** → Frontend fetches from API → Displays with filters
-4. **Comments & Votes** → Real-time updates via API
-
-## 🚢 Deployment
-
-### Backend Deployment
-Push to hosting platform (Azure, Heroku, etc.):
-```bash
-npm run build
-npm run start
-```
-
-### Frontend Deployment
-Deploy to static hosting (GitHub Pages, Netlify, etc.):
-- Update `API_BASE_URL` to production backend URL
-- Deploy `frontend/` folder
-
-## 📚 API Documentation
-
-Full API documentation available in [Backend README](./README.md)
-
-### Key Endpoints
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | /auth/register | ❌ | Register user |
-| POST | /auth/login | ❌ | Login user |
-| GET | /health | ❌ | Health check |
-| POST | /issues | ✅ | Create issue |
-| GET | /issues | ❌ | List issues |
-| GET | /issues/:id | ❌ | Get issue details |
-| PATCH | /issues/:id/status | ✅ ADMIN | Update status |
-| POST | /issues/:id/comments | ✅ | Add comment |
-| GET | /issues/:id/comments | ❌ | Get comments |
-| POST | /issues/:id/vote | ✅ | Upvote issue |
-| DELETE | /issues/:id/vote | ✅ | Remove vote |
-
-## 🔒 Security Notes
-
-- Passwords hashed with bcryptjs
-- JWTs expire (15 min access, 30 days refresh)
-- CORS configured per environment
-- Helmet.js for HTTP security headers
-- Input validation with Zod
-- SQL injection prevention via Prisma
-
-## 🐛 Development
-
-### Building
-```bash
-npm run build        # Compile TypeScript
-npm run dev          # Dev server with hot reload
-npm run lint         # Run ESLint
-npm run test         # Run tests
-```
-
-### Browse Database
-```bash
-npx prisma studio   # Opens Prisma UI
-```
-
-### Reset Database
-```bash
-npx prisma migrate reset  # ⚠️ Deletes all data
-```
-
-## 📞 Support
-
-For issues or questions:
-1. Check [Backend README](./README.md) for backend setup
-2. Check [Frontend README](./frontend/README.md) for frontend setup
-3. Review API documentation
-
-## 📄 License
-
-MIT
+The proposed Crowdsourced Civic Issue Reporting and Resolution System, developed by Team HardCode for the Smart India Hackathon 2025, addresses the systemic failure of civic issues remaining unreported or unresolved due to the absence of a unified reporting platform. The solution integrates an AI-driven backend for automated department routing with a blockchain-based ledger to ensure tamper-proof transparency. By providing a multilingual, multimedia-enabled interface, the system aims to streamline communication between citizens and government authorities, foster trust, and accelerate the resolution of community problems to build cleaner, greener environments.
 
 ---
 
-**Happy civic reporting! 🏛️**
+## Problem Identification
+
+The primary obstacle to effective civic maintenance identified is the lack of a unified, accessible platform for citizens. This deficiency leads to several critical issues:
+
+- Unreported Grievances: Many civic problems are never brought to the attention of authorities because the reporting process is unclear or fragmented.
+- Resolution Delays: Without a centralized system, issues may not reach the appropriate department in a timely manner.
+- Lack of Transparency: Citizens often have no visibility into the status of their reports once submitted, leading to a breakdown in trust between the public and government bodies.
+
+---
+
+## Proposed Solution and Key Features
+
+The project introduces a unified mobile and web application designed to act as a single point of entry for all civic concerns. The solution is built around three core pillars: accessibility, intelligence, and transparency.
+
+### 1. Multi-Modal Reporting Interface
+
+To ensure the system is accessible to all demographics, including non-technical users, the platform supports several input methods:
+
+- Multimedia Inputs: Users can submit reports using photos, text, or voice notes.
+- Geotagging: All reports are automatically geotagged to provide precise location data for authorities.
+- Multilingual Support: A multilingual interface removes language barriers, allowing a broader segment of the population to participate in civic reporting.
+
+### 2. Intelligent Backend and Automated Routing
+
+The system minimizes manual intervention and administrative overhead through an intelligent backend:
+
+- AI Classification: An integrated AI engine automatically categorizes the submitted issue.
+- Automated Department Routing: Once classified, the system identifies and allocates the report to the correct government department, ensuring efficient handling from the outset.
+
+### 3. Transparency and Accountability Mechanisms
+
+To rebuild citizen trust, the platform incorporates high-integrity tracking features:
+
+- Blockchain Ledger: A blockchain-based system provides a tamper-proof record of issue status, ensuring that progress updates are authentic and cannot be manipulated.
+- Open Transparency Dashboard: A real-time dashboard allows citizens to track the progress of their reports from the moment of submission through to final resolution.
+
+---
+
+## Technical Architecture
+
+The system utilizes a modern technical stack to ensure scalability, precision, and intelligence.
+
+| Component | Technology Employed |
+|---|---|
+| Front End | HTML, CSS, JavaScript, and Bootstrap |
+| Back End and Auth | Firebase |
+| Database | PostgreSQL |
+| Mapping and Location | Geospatial APIs for high-precision mapping |
+| Artificial Intelligence | TensorFlow Lite for AI integration and classification |
+
+---
+
+## Anticipated Strategic Impact
+
+The implementation of this crowdsourced system is expected to yield significant improvements in urban management and civic engagement:
+
+- Operational Efficiency: Automated routing and smart resource allocation allow government departments to respond to issues more rapidly.
+- Increased Trust: The use of blockchain and open dashboards creates a verifiable trail of government action, enhancing accountability.
+- Community Well-being: By facilitating faster reporting and resolution, the system contributes directly to the creation of cleaner and greener communities.
+- Data-Driven Governance: High-precision mapping and intelligent classification provide authorities with better data to manage civic resources.

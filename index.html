@@ -3,152 +3,400 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CCIRS</title>
+  <title>CCIRS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 </head>
 
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <span class="navbar-brand">CCIRS</span>
-    <div class="navbar-nav ms-auto">
-      <span id="userInfo" class="navbar-text me-3"></span>
-      <button id="logoutBtn" class="btn btn-sm btn-danger hidden">Logout</button>
+    <span class="navbar-brand" id="navbarBrand">CCIRS Public Dashboard</span>
+    <div class="d-flex align-items-center gap-3">
+      <span class="badge text-bg-warning d-none" id="demoBadge">DEMO</span>
+      <span class="badge text-bg-info d-none" id="juryBadge">JURY</span>
+      <select class="form-select form-select-sm" id="uiLanguage" aria-label="Change interface language">
+        <option value="en">EN</option>
+        <option value="hi">HI</option>
+      </select>
+      <span class="badge text-bg-warning d-none" id="pitchStepBadge">STEP 1/7</span>
+      <span class="badge text-bg-secondary d-none" id="pitchModeBadge">MANUAL</span>
+      <span class="badge text-bg-success d-none" id="liveBadge">LIVE</span>
+      <span class="navbar-text text-light" id="apiStatus">Please login</span>
+      <button type="button" class="btn btn-sm btn-outline-info d-none" id="toggleJuryModeBtn">Jury Mode</button>
+      <button type="button" class="btn btn-sm btn-outline-warning d-none" id="togglePitchFlowBtn">Start Pitch Flow</button>
+      <button type="button" class="btn btn-sm btn-outline-primary d-none" id="togglePitchFullscreenBtn">Fullscreen</button>
+      <button type="button" class="btn btn-sm btn-outline-light d-none" id="logoutBtn">Logout</button>
     </div>
   </div>
 </nav>
 
 <div class="container mt-5">
-  <!-- Auth Section -->
-  <div id="authSection">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <div class="btn-group mb-3" role="group">
-              <button type="button" class="btn btn-outline-primary active" id="loginTab">Login</button>
-              <button type="button" class="btn btn-outline-primary" id="registerTab">Register</button>
-            </div>
+  <div class="d-flex flex-wrap gap-2 justify-content-end mb-3 hide-in-jury">
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleDarkModeBtn">Dark</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleContrastBtn">High Contrast</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleLargeTextBtn">Large Text</button>
+  </div>
 
-            <!-- Login Form -->
-            <form id="loginForm" class="hidden">
-              <h5>Login</h5>
-              <div class="mb-3">
-                <label for="loginEmail">Email</label>
-                <input type="email" class="form-control" id="loginEmail" required>
-              </div>
-              <div class="mb-3">
-                <label for="loginPassword">Password</label>
-                <input type="password" class="form-control" id="loginPassword" required>
-              </div>
-              <button type="submit" class="btn btn-primary">Login</button>
-              <div id="loginError" class="alert alert-danger mt-2 hidden"></div>
-            </form>
-
-            <!-- Register Form -->
-            <form id="registerForm">
-              <h5>Register</h5>
-              <div class="mb-3">
-                <label for="registerName">Name</label>
-                <input type="text" class="form-control" id="registerName" required>
-              </div>
-              <div class="mb-3">
-                <label for="registerEmail">Email</label>
-                <input type="email" class="form-control" id="registerEmail" required>
-              </div>
-              <div class="mb-3">
-                <label for="registerPassword">Password</label>
-                <input type="password" class="form-control" id="registerPassword" required>
-              </div>
-              <button type="submit" class="btn btn-primary">Register</button>
-              <div id="registerError" class="alert alert-danger mt-2 hidden"></div>
-            </form>
+  <div id="authSection" class="row justify-content-center">
+    <div class="col-lg-5 col-md-8">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="mb-3" id="authTitle">Login / Register</h5>
+          <p class="text-muted small mb-3" id="authSubtitle">Login first to access the full application.</p>
+          <div class="mb-2">
+            <label for="authName" class="form-label">Name</label>
+            <input type="text" class="form-control" id="authName" placeholder="Your name">
           </div>
+          <div class="mb-2">
+            <label for="authEmail" class="form-label">Email</label>
+            <input type="email" class="form-control" id="authEmail" placeholder="you@example.com">
+          </div>
+          <div class="mb-3">
+            <label for="authPassword" class="form-label">Password</label>
+            <input type="password" class="form-control" id="authPassword" placeholder="Enter password">
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary" id="localLoginBtn">Login</button>
+            <button type="button" class="btn btn-primary" id="localRegisterBtn">Register</button>
+          </div>
+          <div id="authError" class="alert alert-danger mt-3 d-none"></div>
+          <div id="authSuccess" class="alert alert-success mt-3 d-none"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Complaint Section (shown after auth) -->
-  <div id="complaintSection" class="hidden">
-    <h2 class="text-center mb-4">Report a Civic Issue</h2>
-
-    <div class="row mb-3">
-      <div class="col-md-8">
-        <form id="complaintForm">
-          <div class="mb-3">
-            <label for="issueTitle">Title</label>
-            <input type="text" class="form-control" id="issueTitle" required>
-          </div>
-
-          <div class="mb-3">
-            <label for="issueDescription">Description</label>
-            <textarea class="form-control" id="issueDescription" rows="4" required></textarea>
-          </div>
-
-          <div class="mb-3">
-            <label for="issueCategory">Category</label>
-            <input type="text" class="form-control" id="issueCategory" required>
-          </div>
-
-          <div class="mb-3">
-            <label for="issueSeverity">Severity</label>
-            <select class="form-control" id="issueSeverity">
-              <option value="LOW">Low</option>
-              <option value="MEDIUM" selected>Medium</option>
-              <option value="HIGH">High</option>
-            </select>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label for="issueLatitude">Latitude</label>
-              <input type="number" class="form-control" id="issueLatitude" step="any" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label for="issueLongitude">Longitude</label>
-              <input type="number" class="form-control" id="issueLongitude" step="any" required>
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label for="issueAddress">Address (Optional)</label>
-            <input type="text" class="form-control" id="issueAddress">
-          </div>
-
-          <button type="submit" class="btn btn-primary">Submit Issue</button>
-          <div id="complaintError" class="alert alert-danger mt-2 hidden"></div>
-          <div id="complaintSuccess" class="alert alert-success mt-2 hidden"></div>
-        </form>
+  <div id="appSection" class="d-none">
+    <div id="juryStory" class="card mb-3 d-none">
+      <div class="card-body">
+        <h5 class="mb-2" id="juryStoryTitle">Why This Matters</h5>
+        <p class="mb-0 small" id="juryStoryText">Citizens submit geotagged issues, AI routes them instantly, and transparency timelines maintain public trust from submission to resolution.</p>
       </div>
+    </div>
 
-      <div class="col-md-4">
-        <div class="card">
+    <div id="pitchScriptCard" class="card mb-3 d-none">
+      <div class="card-body">
+        <h6 class="mb-2" id="pitchGuideTitle">Presenter Guide</h6>
+        <p class="mb-0 small" id="pitchGuideText">Use Start Pitch Flow to auto-walk the jury through impact, trust, and scale evidence.</p>
+      </div>
+    </div>
+
+    <div id="pitchKeyHints" class="alert alert-warning py-2 px-3 d-none" role="note">
+      <small id="pitchHintText">Keys: Left/Right to move steps, F for fullscreen.</small>
+    </div>
+
+    <div class="row g-3 mb-4" id="statsCards">
+      <div class="col-6 col-md-3">
+        <div class="card stat-card">
           <div class="card-body">
-            <h5>Get Location</h5>
-            <button type="button" class="btn btn-secondary" id="getLocationBtn">Use My Location</button>
-            <p id="locationInfo" class="mt-3"></p>
+            <p class="stat-label">Total Issues</p>
+            <h3 id="statTotal">0</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card stat-card">
+          <div class="card-body">
+            <p class="stat-label">Open</p>
+            <h3 id="statOpen">0</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card stat-card">
+          <div class="card-body">
+            <p class="stat-label">In Progress</p>
+            <h3 id="statInProgress">0</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card stat-card">
+          <div class="card-body">
+            <p class="stat-label">Resolved</p>
+            <h3 id="statResolved">0</h3>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Issues List -->
-    <div class="mt-5">
-      <h3>Recent Issues</h3>
-      <div id="issuesList" class="row"></div>
+    <div class="row g-3 mb-4" id="kpiCards">
+      <div class="col-12 col-md-4">
+        <div class="card stat-card">
+          <div class="card-body">
+            <p class="stat-label" id="kpiReportsTodayLabel">Reports Today</p>
+            <h4 id="kpiReportsToday">0</h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card stat-card">
+          <div class="card-body">
+            <p class="stat-label" id="kpiRoutingLabel">Auto-routing Accuracy</p>
+            <h4 id="kpiRouting">0%</h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card stat-card">
+          <div class="card-body">
+            <p class="stat-label" id="kpiEtaLabel">Avg Resolution ETA</p>
+            <h4 id="kpiEta">-</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4" id="reportingRow">
+      <div class="col-lg-7 mb-3">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="mb-3">Report a Civic Issue</h5>
+            <form id="complaintForm">
+              <div class="mb-3">
+                <label for="issueTitle" class="form-label">Title</label>
+                <input type="text" class="form-control" id="issueTitle" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="issueDescription" class="form-label">Description</label>
+                <textarea class="form-control" id="issueDescription" rows="4" required></textarea>
+              </div>
+
+              <div class="mb-3">
+                <label for="issueSeverity" class="form-label">Priority</label>
+                <select class="form-control" id="issueSeverity">
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM" selected>Medium</option>
+                  <option value="HIGH">High</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label for="issueLanguage" class="form-label">Language</label>
+                <select class="form-control" id="issueLanguage">
+                  <option value="en" selected>English</option>
+                  <option value="hi">Hindi</option>
+                </select>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="issueLatitude" class="form-label">Latitude</label>
+                  <input type="number" class="form-control" id="issueLatitude" step="any" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="issueLongitude" class="form-label">Longitude</label>
+                  <input type="number" class="form-control" id="issueLongitude" step="any" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="issueAddress" class="form-label">Address (optional)</label>
+                <input type="text" class="form-control" id="issueAddress">
+              </div>
+
+              <div class="mb-3">
+                <label for="issuePhotos" class="form-label">Photos (optional)</label>
+                <input type="file" class="form-control" id="issuePhotos" accept="image/*" multiple>
+                <div class="form-text">You can upload one or more photos to support your report.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="issueVoiceNote" class="form-label">Voice Note (optional)</label>
+                <input type="file" class="form-control" id="issueVoiceNote" accept="audio/*">
+              </div>
+
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" value="yes" id="privacyConsent">
+                <label class="form-check-label" for="privacyConsent" id="privacyConsentLabel">
+                  I consent to secure processing of this report data.
+                </label>
+                <button type="button" class="btn btn-link btn-sm p-0 ms-2" id="viewPrivacyBtn">Privacy details</button>
+              </div>
+
+              <button type="submit" class="btn btn-primary" id="submitIssueBtn">
+                <span class="spinner-border spinner-border-sm me-2 d-none" id="submitSpinner" aria-hidden="true"></span>
+                <span id="submitBtnText">Submit Issue</span>
+                <span class="ms-2 d-none" id="submitCheck">✓</span>
+              </button>
+              <button type="button" class="btn btn-outline-secondary ms-2" id="refreshBtn">Refresh Data</button>
+
+              <div id="complaintError" class="alert alert-danger mt-3 d-none"></div>
+              <div id="complaintSuccess" class="alert alert-success mt-3 d-none"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5 mb-3">
+        <div class="card mb-3">
+          <div class="card-body">
+            <h5>Get Location</h5>
+            <button type="button" class="btn btn-secondary" id="getLocationBtn">Use My Location</button>
+            <p id="locationInfo" class="mt-3 mb-0"></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <h5 class="mb-3">Departments</h5>
+            <ul id="departmentStats" class="list-group list-group-flush"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="mb-0" id="recentIssuesTitle">Recent Issues</h4>
+          <small class="text-muted" id="issuesMeta"></small>
+        </div>
+        <div class="row g-2 mb-3 hide-in-jury">
+          <div class="col-md-4">
+            <input type="text" class="form-control" id="issueSearch" placeholder="Search issues..." aria-label="Search issues">
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="issueStatusFilter" aria-label="Filter issues by status">
+              <option value="">All Statuses</option>
+              <option value="OPEN">OPEN</option>
+              <option value="IN_PROGRESS">IN_PROGRESS</option>
+              <option value="RESOLVED">RESOLVED</option>
+              <option value="CLOSED">CLOSED</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="issueDepartmentFilter" aria-label="Filter issues by department">
+              <option value="">All Departments</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="btn btn-outline-secondary w-100" id="clearFiltersBtn">Clear Filters</button>
+          </div>
+        </div>
+        <div id="issuesList" class="row"></div>
+        <div id="issuesEmpty" class="text-muted d-none">No issues found.</div>
+        <div id="issuesError" class="text-danger d-none"></div>
+      </div>
+    </div>
+
+    <div class="card mt-3" id="mapCard">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="mb-0" id="transparencyTitle">Public Transparency Feed</h4>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="exportFeedBtn">Export CSV</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleDemoModeBtn">Demo Mode</button>
+            <small class="text-muted" id="feedMeta"></small>
+          </div>
+        </div>
+        <div id="transparencyFeed" class="list-group list-group-flush"></div>
+        <div id="transparencyEmpty" class="text-muted d-none">No public updates yet.</div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h4 class="mb-0" id="mapTitle">Neighborhood Issue Map</h4>
+          <small class="text-muted" id="mapMeta"></small>
+        </div>
+        <div id="issuesMap" class="issues-map"></div>
+      </div>
+    </div>
+
+    <div class="row mt-3 g-3">
+      <div class="col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="mb-3" id="architectureTitle">System Architecture</h5>
+            <div class="architecture-flow">
+              <span class="architecture-node">Citizen Input</span>
+              <span class="architecture-arrow">-></span>
+              <span class="architecture-node">Firebase API</span>
+              <span class="architecture-arrow">-></span>
+              <span class="architecture-node">AI Router</span>
+              <span class="architecture-arrow">-></span>
+              <span class="architecture-node">Geo DB</span>
+              <span class="architecture-arrow">-></span>
+              <span class="architecture-node">Ledger + Dashboard</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="mb-3" id="impactTitle">Operational Impact</h5>
+            <ul class="list-unstyled mb-0 small" id="impactList">
+              <li>Estimated triage acceleration: 40% with automated department routing.</li>
+              <li>Duplicate report handling reduced through community upvotes and clustering signals.</li>
+              <li>Public trust strengthened with tamper-aware transparency timeline.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="mb-3" id="scalabilityTitle">Scalability Plan</h5>
+            <ul class="list-unstyled mb-0 small" id="scalabilityList">
+              <li>Live polling and stat aggregation support city-wide issue spikes.</li>
+              <li>Stateless API routes can scale horizontally behind a load balancer.</li>
+              <li>Architecture is ready for expansion from ward-level rollout to nationwide deployment.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
+<div id="timelineModal" class="timeline-modal d-none" role="dialog" aria-modal="true" aria-label="Issue transparency timeline">
+  <div class="timeline-modal-panel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0" id="timelineTitle">Issue Timeline</h5>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="timelineClose">Close</button>
+    </div>
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span id="integrityBadge" class="badge text-bg-secondary">Integrity: unknown</span>
+      <small id="timelineIssueMeta" class="text-muted"></small>
+    </div>
+    <div id="timelineContent" class="timeline-list"></div>
+  </div>
+</div>
+
+<div id="privacyModal" class="timeline-modal d-none" role="dialog" aria-modal="true" aria-label="Data privacy details">
+  <div class="timeline-modal-panel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0" id="privacyTitle">Data Privacy and Consent</h5>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="privacyClose">Close</button>
+    </div>
+    <div class="small" id="privacyContent">
+      <p class="mb-2">Location, media, and report metadata are processed for civic issue resolution and transparency tracking.</p>
+      <p class="mb-2">Data is used for automated department routing and public progress visibility. Sensitive details should not be included in report text.</p>
+      <p class="mb-0">Operational logs and timeline events are retained for integrity checks and accountability workflows.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="app.js"></script>
-<script>
-  // ensure login form is visible on initial load
-  if (typeof showLoginForm === 'function') {
-    showLoginForm();
-  }
-</script>
+
+<div class="position-fixed bottom-0 end-0 p-3 status-toast-wrap">
+  <div id="statusToast" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="statusToastBody">Status update</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

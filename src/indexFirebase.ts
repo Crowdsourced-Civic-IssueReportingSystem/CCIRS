@@ -7,6 +7,7 @@ import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
 import authRoutes from "./routes/authFirebase";
 import issuesRoutes from "./routes/issuesFirebase";
 import transparencyRoutes from "./routes/transparencyFirebase";
@@ -20,8 +21,16 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(morgan("combined"));
 app.use(express.json());
 
-// Health check
-app.get("/health", (req: Request, res: Response) => {
+// Serve frontend files (index.html, app.js, styles.css)
+app.use(express.static(path.resolve(__dirname, "../")));
+
+// Frontend entry point
+app.get("/", (req: Request, res: Response) => {
+  res.sendFile(path.resolve(__dirname, "../index.html"));
+});
+
+// Health check (support both direct and /api-prefixed paths)
+app.get(["/health", "/api/health"], (req: Request, res: Response) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
@@ -29,10 +38,15 @@ app.get("/health", (req: Request, res: Response) => {
   });
 });
 
-// Routes
+// Routes (direct paths)
 app.use("/auth", authRoutes);
 app.use("/issues", issuesRoutes);
 app.use("/transparency", transparencyRoutes);
+
+// Routes (/api-prefixed compatibility paths)
+app.use("/api/auth", authRoutes);
+app.use("/api/issues", issuesRoutes);
+app.use("/api/transparency", transparencyRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
