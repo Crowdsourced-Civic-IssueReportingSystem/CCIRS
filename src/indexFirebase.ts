@@ -62,7 +62,10 @@ app.get(/^\/(?!api\/).*/, (req: Request, res: Response, next) => {
 
 // 404 handler
 app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: "Not found" });
+  res.status(404).json({
+    message: "Route not found",
+    path: req.path,
+  });
 });
 
 // Error handler

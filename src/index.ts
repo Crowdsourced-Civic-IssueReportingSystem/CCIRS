@@ -28,7 +28,12 @@ app.use("/auth", authRoutes);
 app.use("/issues", issueRoutes);
 app.use("/transparency", transparencyRoutes);
 
-app.use((_, res) => res.status(404).json({ message: "Not found" }));
+app.use((req, res) =>
+  res.status(404).json({
+    message: "Route not found",
+    path: req.path,
+  }),
+);
 
 if (!IS_VERCEL) {
   app.listen(config.port, () => {
