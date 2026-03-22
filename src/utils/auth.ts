@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config } from "../config";
-import { User } from "@prisma/client";
+// import { User } from "@prisma/client";
 
 type TokenPair = { accessToken: string; refreshToken: string };
 

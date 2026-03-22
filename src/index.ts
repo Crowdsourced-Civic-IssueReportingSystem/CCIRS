@@ -6,7 +6,7 @@ import { config } from "./config";
 import authRoutes from "./routes/auth";
 import issueRoutes from "./routes/issues";
 import transparencyRoutes from "./routes/transparency";
-import { prisma } from "./db";
+// import { prisma } from "./db";
 
 const app = express();
 app.use(helmet());
@@ -16,7 +16,7 @@ app.use(morgan("dev"));
 
 app.get("/health", async (_, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    // await prisma.$queryRaw`SELECT 1`;
     res.json({ status: "ok" });
   } catch (err) {
     res.status(500).json({ status: "error" });

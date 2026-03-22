@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { prisma } from "../db";
+// import { prisma } from "../db";
 import { config } from "../config";
 
 export interface AuthedRequest extends Request {
@@ -24,7 +24,7 @@ export const requireAuth = async (
   const token = header.slice("Bearer ".length);
   try {
     const payload = jwt.verify(token, config.jwt.accessSecret) as jwt.JwtPayload;
-    const user = await prisma.user.findUnique({ where: { id: payload.sub as string } });
+    // const user = await prisma.user.findUnique({ where: { id: payload.sub as string } });
     if (!user) {
       res.status(401).json({ message: "Invalid user" });
       return;

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { prisma } from "../db";
+// import { prisma } from "../db";
 
 type LedgerPayload = Record<string, unknown>;
 
@@ -29,7 +29,7 @@ export const appendLedgerEvent = async (
   eventType: string,
   payload: LedgerPayload,
 ): Promise<void> => {
-  const client = prisma as any;
+  // const client = prisma as any;
   if (!client.ledgerEntry) {
     return;
   }
@@ -56,7 +56,7 @@ export const appendLedgerEvent = async (
 };
 
 export const verifyLedger = async (issueId: string): Promise<boolean> => {
-  const client = prisma as any;
+  // const client = prisma as any;
   if (!client.ledgerEntry) {
     return true;
   }

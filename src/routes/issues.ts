@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma } from "../db";
+// import { prisma } from "../db";
 import { requireFirebaseAuth } from "../middleware/firebaseAuth";
 import { classifyIssue } from "../services/aiRouter";
 import { appendLedgerEvent } from "../services/ledger";
@@ -16,7 +16,7 @@ const ensureAppUserFromFirebase = async (req: Express.Request) => {
 
   const authEmail = req.authUser.email ?? `${req.authUser.uid}@firebase.local`;
 
-  return prisma.user.upsert({
+  // return prisma.user.upsert({
     where: { email: authEmail },
     update: {
       email: authEmail,
@@ -63,7 +63,7 @@ router.post("/", requireFirebaseAuth, async (req, res) => {
     return res.status(401).json({ message: "Firebase auth required" });
   }
 
-  const issue = await prisma.issue.create({
+  // const issue = await prisma.issue.create({
     data: {
       title: data.title,
       description: data.description,
@@ -119,20 +119,20 @@ router.get("/", async (req, res) => {
     ];
   }
   const [items, total] = await Promise.all([
-    prisma.issue.findMany({
+    // prisma.issue.findMany({
       where,
       include: { media: true, _count: { select: { votes: true, comments: true } } },
       orderBy: { createdAt: "desc" },
       skip,
       take,
     }),
-    prisma.issue.count({ where }),
+    // prisma.issue.count({ where }),
   ]);
   return res.json({ items, total, page: Number(page), pageSize: take });
 });
 
 router.get("/:id", async (req, res) => {
-  const issue = await prisma.issue.findUnique({
+  // const issue = await prisma.issue.findUnique({
     where: { id: req.params.id },
     include: {
       media: true,
@@ -164,7 +164,7 @@ router.patch(
     const parsed = statusSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json(parsed.error.format());
     try {
-      const issue = await prisma.issue.update({
+      // const issue = await prisma.issue.update({
         where: { id: req.params.id },
         data: { status: parsed.data.status, assignedTo: parsed.data.assignedTo },
       });
@@ -195,9 +195,9 @@ router.post("/:id/comments", requireFirebaseAuth, async (req, res) => {
 
   const parsed = commentSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.format());
-  const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
+  // const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
   if (!issue) return res.status(404).json({ message: "Issue not found", id: req.params.id });
-  const comment = await prisma.comment.create({
+  // const comment = await prisma.comment.create({
     data: {
       body: parsed.data.body,
       issueId: req.params.id,
@@ -213,7 +213,7 @@ router.post("/:id/comments", requireFirebaseAuth, async (req, res) => {
 });
 
 router.get("/:id/comments", async (req, res) => {
-  const comments = await prisma.comment.findMany({
+  // const comments = await prisma.comment.findMany({
     where: { issueId: req.params.id },
     include: { author: { select: { id: true, email: true, name: true } } },
     orderBy: { createdAt: "asc" },
@@ -227,10 +227,10 @@ router.post("/:id/vote", requireFirebaseAuth, async (req, res) => {
     return res.status(401).json({ message: "Firebase auth required" });
   }
 
-  const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
+  // const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
   if (!issue) return res.status(404).json({ message: "Issue not found", id: req.params.id });
   try {
-    await prisma.vote.create({
+    // await prisma.vote.create({
       data: { issueId: req.params.id, userId: actor.id },
     });
 
@@ -254,9 +254,9 @@ router.delete("/:id/vote", requireFirebaseAuth, async (req, res) => {
     return res.status(401).json({ message: "Firebase auth required" });
   }
 
-  const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
+  // const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
   if (!issue) return res.status(404).json({ message: "Issue not found", id: req.params.id });
-  await prisma.vote.deleteMany({ where: { issueId: req.params.id, userId: actor.id } });
+  // await prisma.vote.deleteMany({ where: { issueId: req.params.id, userId: actor.id } });
 
   await appendLedgerEvent(issue.id, "ISSUE_UNVOTED", {
     by: actor.id,

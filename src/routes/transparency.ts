@@ -1,5 +1,5 @@
 import { Request, Response, Router } from "express";
-import { prisma } from "../db";
+// import { prisma } from "../db";
 import { verifyLedger } from "../services/ledger";
 
 const router = Router();
@@ -7,7 +7,7 @@ const router = Router();
 router.get("/issues/:id/timeline", async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
 
-  const issue = await prisma.issue.findUnique({
+  // const issue = await prisma.issue.findUnique({
     where: { id },
     select: {
       id: true,
@@ -22,7 +22,7 @@ router.get("/issues/:id/timeline", async (req: Request, res: Response): Promise<
     return;
   }
 
-  const client = prisma as any;
+  // const client = prisma as any;
   const timeline = client.ledgerEntry
     ? await client.ledgerEntry.findMany({
         where: { issueId: id },

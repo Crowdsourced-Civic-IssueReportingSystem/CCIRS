@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma } from "../db";
+// import { prisma } from "../db";
 import { requireFirebaseAuth } from "../middleware/firebaseAuth";
 
 const router = Router();
@@ -10,15 +10,7 @@ router.get("/me", requireFirebaseAuth, async (req, res) => {
   }
 
   const authEmail = req.authUser.email ?? `${req.authUser.uid}@firebase.local`;
-  const user = await prisma.user.upsert({
-    where: { email: authEmail },
-    update: { name: req.authUser.name, email: authEmail },
-    create: {
-      email: authEmail,
-      name: req.authUser.name,
-      password: "firebase-auth-user",
-    },
-  });
+  // Database logic removed
 
   return res.json({
     user: {
@@ -37,7 +29,7 @@ router.post("/sync", requireFirebaseAuth, async (req, res) => {
   }
 
   const authEmail = req.authUser.email ?? `${req.authUser.uid}@firebase.local`;
-  const user = await prisma.user.upsert({
+  // const user = await prisma.user.upsert({
     where: { email: authEmail },
     update: { name: req.authUser.name, email: authEmail },
     create: {

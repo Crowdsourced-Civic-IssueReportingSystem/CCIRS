@@ -75,6 +75,100 @@
   </div>
 
   <div id="appSection" class="d-none">
+    <section class="home-hero card mb-3" aria-labelledby="homeHeroTitle">
+      <div class="card-body">
+        <div class="home-hero-grid">
+          <div>
+            <p class="hero-kicker">Citizen-first civic response</p>
+            <h1 class="hero-title mb-2" id="homeHeroTitle">Report civic issues. Track action. Build public trust.</h1>
+            <p class="hero-subtitle mb-3">
+              CCIRS connects residents and city teams through transparent issue reporting, public timelines, and measurable resolution outcomes.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="#reportingRow" class="btn btn-primary">Report an Issue</a>
+              <a href="#recentIssuesTitle" class="btn btn-outline-primary">View Recent Issues</a>
+            </div>
+          </div>
+          <div class="hero-highlight" role="status" aria-live="polite">
+            <div class="highlight-pill">Public Dashboard • Live</div>
+            <p class="mb-1 fw-semibold">Transparent by design</p>
+            <p class="mb-0 small text-muted">Every issue stays visible from submission to closure with accountability checkpoints.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card mb-3" aria-labelledby="howItWorksTitle">
+      <div class="card-body">
+        <h4 class="mb-3" id="howItWorksTitle">How It Works</h4>
+        <div class="how-grid">
+          <article class="how-item">
+            <div class="how-icon-wrap">
+              <svg class="how-icon" aria-hidden="true"><use href="hero-icons.svg#icon-report"></use></svg>
+            </div>
+            <h5>1. Report</h5>
+            <p>Citizens submit issue details with location and evidence in under a minute.</p>
+          </article>
+          <article class="how-item">
+            <div class="how-icon-wrap">
+              <svg class="how-icon" aria-hidden="true"><use href="hero-icons.svg#icon-transparency"></use></svg>
+            </div>
+            <h5>2. Route & Track</h5>
+            <p>AI-assisted routing sends reports to the right department with live timeline updates.</p>
+          </article>
+          <article class="how-item">
+            <div class="how-icon-wrap">
+              <svg class="how-icon" aria-hidden="true"><use href="hero-icons.svg#icon-audit"></use></svg>
+            </div>
+            <h5>3. Resolve</h5>
+            <p>Progress and closure stay publicly visible, increasing accountability and trust.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust-strip card mb-3" aria-label="Trust signals">
+      <div class="card-body">
+        <div class="trust-grid">
+          <div class="trust-item">
+            <svg class="trust-icon" aria-hidden="true"><use href="hero-icons.svg#icon-trust"></use></svg>
+            <div>
+              <p class="mb-0 fw-semibold">Secure reporting</p>
+              <small class="text-muted">Consent-aware, privacy-conscious workflows</small>
+            </div>
+          </div>
+          <div class="trust-item">
+            <svg class="trust-icon" aria-hidden="true"><use href="hero-icons.svg#icon-transparency"></use></svg>
+            <div>
+              <p class="mb-0 fw-semibold">Public transparency</p>
+              <small class="text-muted">Track status and timeline events openly</small>
+            </div>
+          </div>
+          <div class="trust-item">
+            <svg class="trust-icon" aria-hidden="true"><use href="hero-icons.svg#icon-audit"></use></svg>
+            <div>
+              <p class="mb-0 fw-semibold">Audit-ready records</p>
+              <small class="text-muted">Clear accountability from report to closure</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card mb-4" aria-labelledby="featuredIssuesTitle">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+          <h4 class="mb-0" id="featuredIssuesTitle">Featured Issues</h4>
+          <small class="text-muted">Top upvoted public issues</small>
+        </div>
+        <div id="featuredIssuesGrid" class="featured-grid" aria-live="polite">
+          <div class="featured-skeleton"></div>
+          <div class="featured-skeleton"></div>
+          <div class="featured-skeleton"></div>
+        </div>
+      </div>
+    </section>
+
     <div id="juryStory" class="card mb-3 d-none">
       <div class="card-body">
         <h5 class="mb-2" id="juryStoryTitle">Why This Matters</h5>
