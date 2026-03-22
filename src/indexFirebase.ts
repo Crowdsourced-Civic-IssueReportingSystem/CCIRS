@@ -26,21 +26,19 @@ app.use(express.json());
 const WEB_ROOT = path.resolve(__dirname, "../");
 const INDEX_FILE = path.join(WEB_ROOT, "index.html");
 
-if (fs.existsSync(INDEX_FILE)) {
-  app.use(express.static(WEB_ROOT));
-  app.get("/", (req: Request, res: Response) => {
+// Serve static index.html if it exists, but always provide a fallback JSON for /
+app.use(express.static(WEB_ROOT));
+app.get("/", (req: Request, res: Response) => {
+  if (fs.existsSync(INDEX_FILE)) {
     res.sendFile(INDEX_FILE);
-  });
-} else {
-  // If index.html does not exist, respond with a friendly API status message
-  app.get("/", (req: Request, res: Response) => {
+  } else {
     res.json({
       message: "CCIRS API is running",
       status: "ok",
       timestamp: new Date().toISOString(),
     });
-  });
-}
+  }
+});
 
 // Health check (support both direct and /api-prefixed paths)
 app.get(["/health", "/api/health"], (req: Request, res: Response) => {
