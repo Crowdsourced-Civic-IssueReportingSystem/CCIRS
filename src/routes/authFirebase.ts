@@ -11,6 +11,141 @@ import { requireFirebaseAuth } from "../middleware/firebaseAuth";
 import { updateDoc, getDoc, createDoc } from "../services/firestoreApi";
 
 const router = Router();
+const ENABLE_LOCAL_AUTH = process.env.NODE_ENV !== "production";
+
+const userDocIdFromEmail = (email: string): string => {
+  return `user_${Buffer.from(email.toLowerCase()).toString("base64url")}`;
+};
+
+const createDevToken = (payload: { uid: string; email?: string; name?: string }): string => {
+  const body = {
+    uid: payload.uid,
+    email: payload.email,
+    name: payload.name,
+    iat: Math.floor(Date.now() / 1000),
+  };
+
+  return `dev.${Buffer.from(JSON.stringify(body)).toString("base64url")}.sig`;
+};
+
+/**
+ * POST /auth/register
+ * Local register endpoint for development/demo mode
+ */
+router.post("/register", async (req: Request, res: Response) => {
+  if (!ENABLE_LOCAL_AUTH) {
+    return res.status(501).json({ error: "Local register is disabled in production" });
+  }
+
+  try {
+    const { name, email, password } = req.body ?? {};
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    const docId = userDocIdFromEmail(email);
+    const existing = await getDoc("users", docId);
+    if (existing) {
+      const updatedUser = {
+        ...existing,
+        email,
+        name: name || existing.name || "Citizen",
+        password,
+        role: existing.role || "CITIZEN",
+        updatedAt: new Date().toISOString(),
+      };
+
+      await updateDoc("users", docId, updatedUser);
+
+      const token = createDevToken({ uid: updatedUser.uid, email: updatedUser.email, name: updatedUser.name });
+      return res.status(200).json({
+        message: "Account already existed. Credentials updated and logged in.",
+        user: {
+          uid: updatedUser.uid,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          role: updatedUser.role,
+        },
+        tokens: {
+          accessToken: token,
+        },
+      });
+    }
+
+    const uid = `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const user = {
+      id: docId,
+      uid,
+      email,
+      name: name || "Citizen",
+      password,
+      role: "CITIZEN",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await createDoc("users", docId, user);
+
+    const token = createDevToken({ uid, email: user.email, name: user.name });
+    return res.status(201).json({
+      message: "Registered successfully",
+      user: {
+        uid: user.uid,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      tokens: {
+        accessToken: token,
+      },
+    });
+  } catch (error) {
+    console.error("POST /auth/register error:", error);
+    res.status(500).json({ error: "Registration failed" });
+  }
+});
+
+/**
+ * POST /auth/login
+ * Local login endpoint for development/demo mode
+ */
+router.post("/login", async (req: Request, res: Response) => {
+  if (!ENABLE_LOCAL_AUTH) {
+    return res.status(501).json({ error: "Local login is disabled in production" });
+  }
+
+  try {
+    const { email, password } = req.body ?? {};
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    const docId = userDocIdFromEmail(email);
+    const user = await getDoc("users", docId);
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const token = createDevToken({ uid: user.uid, email: user.email, name: user.name });
+    res.json({
+      message: "Login successful",
+      user: {
+        uid: user.uid,
+        email: user.email,
+        name: user.name,
+        role: user.role || "CITIZEN",
+      },
+      tokens: {
+        accessToken: token,
+      },
+    });
+  } catch (error) {
+    console.error("POST /auth/login error:", error);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
 
 /**
  * GET /auth/me

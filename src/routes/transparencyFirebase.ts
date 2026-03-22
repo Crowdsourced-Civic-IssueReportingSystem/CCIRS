@@ -4,7 +4,7 @@
  */
 
 import { Router, Request, Response } from "express";
-import { getDoc, listSubDocs } from "../services/firestoreApi";
+import { getDoc, listSubDocs, listDocs } from "../services/firestoreApi";
 
 const router = Router();
 
@@ -69,9 +69,12 @@ router.get("/issues/:id/timeline", async (req: Request, res: Response) => {
         status: issue.status,
         category: issue.category,
         severity: issue.severity,
+        language: issue.language || "en",
         latitude: issue.latitude,
         longitude: issue.longitude,
         address: issue.address,
+        photoUrls: issue.photoUrls || [],
+        voiceNoteUrl: issue.voiceNoteUrl || "",
         createdAt: issue.createdAt,
         updatedAt: issue.updatedAt,
         voteCount: issue.voteCount || 0,
@@ -92,13 +95,53 @@ router.get("/issues/:id/timeline", async (req: Request, res: Response) => {
  */
 router.get("/issues", async (req: Request, res: Response) => {
   try {
-    const { limit = "100" } = req.query;
+    const { limit = "100", status, department, search } = req.query;
 
-    // For simplicity, we'll just return empty array
-    // In production, implement proper collection listing
-    const publicIssues: any[] = [];
+    const parsedLimit = Math.max(1, Math.min(200, parseInt(limit as string, 10) || 100));
+    const allIssues = await listDocs("issues", 2000);
 
-    res.json(publicIssues.slice(0, parseInt(limit as string)));
+    let issues = allIssues.map((issue) => ({
+      id: issue.id,
+      title: issue.title,
+      description: issue.description,
+      status: issue.status,
+      severity: issue.severity,
+      category: issue.category,
+      department: issue.department,
+      language: issue.language || "en",
+      voteCount: issue.voteCount || 0,
+      commentCount: issue.commentCount || 0,
+      photoCount: Array.isArray(issue.photoUrls) ? issue.photoUrls.length : 0,
+      hasVoiceNote: Boolean(issue.voiceNoteUrl),
+      createdAt: issue.createdAt,
+      updatedAt: issue.updatedAt,
+    }));
+
+    if (status) {
+      issues = issues.filter((i) => i.status === status);
+    }
+
+    if (department) {
+      issues = issues.filter((i) => i.department === department);
+    }
+
+    if (search) {
+      const q = String(search).toLowerCase().trim();
+      if (q) {
+        issues = issues.filter((i) => {
+          const haystack = `${i.title || ""} ${i.description || ""} ${i.department || ""} ${i.category || ""}`.toLowerCase();
+          return haystack.includes(q);
+        });
+      }
+    }
+
+    issues.sort((a, b) => {
+      const aTs = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bTs = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return bTs - aTs;
+    });
+
+    res.json(issues.slice(0, parsedLimit));
   } catch (error) {
     console.error("GET /transparency/issues error:", error);
     res.status(500).json({ error: "Failed to fetch issues" });
@@ -111,18 +154,40 @@ router.get("/issues", async (req: Request, res: Response) => {
  */
 router.get("/stats", async (req: Request, res: Response) => {
   try {
+    const issues = await listDocs("issues", 1000);
+
     const stats = {
-      totalIssues: 0,
+      totalIssues: issues.length,
       byStatus: {
         OPEN: 0,
         IN_PROGRESS: 0,
         RESOLVED: 0,
         CLOSED: 0,
       },
-      byDepartment: {},
+      byDepartment: {} as any,
       totalVotes: 0,
       totalComments: 0,
     };
+
+    // Calculate stats
+    for (const issue of issues) {
+      // Count by status
+      const status = issue.status as keyof typeof stats.byStatus;
+      if (status in stats.byStatus) {
+        stats.byStatus[status]++;
+      } else {
+        console.warn(`Unknown status: ${status}`);
+      }
+
+      // Count by department
+      if (issue.department) {
+        stats.byDepartment[issue.department] = (stats.byDepartment[issue.department] || 0) + 1;
+      }
+
+      // Count votes and comments
+      stats.totalVotes += issue.voteCount || 0;
+      stats.totalComments += issue.commentCount || 0;
+    }
 
     res.json(stats);
   } catch (error) {

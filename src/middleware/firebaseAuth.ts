@@ -17,10 +17,20 @@ export const requireFirebaseAuth = async (
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
+  const isProd = process.env.NODE_ENV === "production";
   const header = req.headers.authorization ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
 
   if (!token) {
+    if (!isProd) {
+      req.authUser = {
+        uid: "guest_local_user",
+        name: "Local Guest",
+      };
+      next();
+      return;
+    }
+
     res.status(401).json({ message: "Missing bearer token" });
     return;
   }

@@ -7,6 +7,7 @@
 const fetchFn: typeof fetch = (...args) => fetch(...args);
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "crowdsourced-civic-issue-1f5fe";
+const USE_LOCAL_STORE = process.env.NODE_ENV !== "production";
 
 interface Document {
   name: string;
@@ -21,6 +22,48 @@ interface QueryResult {
 }
 
 const REST_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)`;
+
+const localCollections = new Map<string, Map<string, any>>();
+const localSubCollections = new Map<string, Map<string, any>>();
+let localSeeded = false;
+
+function cloneValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function getCollectionStore(collection: string): Map<string, any> {
+  const existing = localCollections.get(collection);
+  if (existing) return existing;
+
+  const created = new Map<string, any>();
+  localCollections.set(collection, created);
+  return created;
+}
+
+function getSubCollectionStore(
+  collection: string,
+  docId: string,
+  subCollection: string,
+): Map<string, any> {
+  const key = `${collection}/${docId}/${subCollection}`;
+  const existing = localSubCollections.get(key);
+  if (existing) return existing;
+
+  const created = new Map<string, any>();
+  localSubCollections.set(key, created);
+  return created;
+}
+
+function ensureLocalSeeded(): void {
+  if (localSeeded) return;
+
+  const issueStore = getCollectionStore("issues");
+  for (const issue of getMockData("issues")) {
+    issueStore.set(issue.id, cloneValue(issue));
+  }
+
+  localSeeded = true;
+}
 
 /**
  * Parse Firestore document to plain object
@@ -88,6 +131,18 @@ export async function createDoc(
   docId: string,
   data: any
 ): Promise<any> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getCollectionStore(collection);
+    const doc = {
+      id: docId,
+      ...cloneValue(data),
+      updatedAt: data.updatedAt || new Date().toISOString(),
+    };
+    store.set(docId, doc);
+    return cloneValue(doc);
+  }
+
   const url = `${REST_BASE}/documents/${collection}/${docId}`;
   const fields = Object.entries(data).reduce((acc: any, [k, v]) => {
     acc[k] = toField(v);
@@ -121,6 +176,13 @@ export async function createDoc(
  * Get a document from Firestore
  */
 export async function getDoc(collection: string, docId: string): Promise<any> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getCollectionStore(collection);
+    const doc = store.get(docId);
+    return doc ? cloneValue(doc) : null;
+  }
+
   const url = `${REST_BASE}/documents/${collection}/${docId}`;
 
   try {
@@ -152,6 +214,20 @@ export async function updateDoc(
   docId: string,
   data: any
 ): Promise<any> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getCollectionStore(collection);
+    const previous = store.get(docId) || { id: docId };
+    const merged = {
+      ...cloneValue(previous),
+      ...cloneValue(data),
+      id: docId,
+      updatedAt: new Date().toISOString(),
+    };
+    store.set(docId, merged);
+    return cloneValue(merged);
+  }
+
   const url = `${REST_BASE}/documents/${collection}/${docId}`;
   const fields = Object.entries(data).reduce((acc: any, [k, v]) => {
     acc[k] = toField(v);
@@ -188,6 +264,20 @@ export async function deleteDoc(
   collection: string,
   docId: string
 ): Promise<void> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getCollectionStore(collection);
+    store.delete(docId);
+
+    const subPrefix = `${collection}/${docId}/`;
+    for (const key of localSubCollections.keys()) {
+      if (key.startsWith(subPrefix)) {
+        localSubCollections.delete(key);
+      }
+    }
+    return;
+  }
+
   const url = `${REST_BASE}/documents/${collection}/${docId}`;
 
   try {
@@ -216,6 +306,13 @@ export async function deleteSubDoc(
   subCollection: string,
   subDocId: string
 ): Promise<void> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getSubCollectionStore(collection, docId, subCollection);
+    store.delete(subDocId);
+    return;
+  }
+
   const url = `${REST_BASE}/documents/${collection}/${docId}/${subCollection}/${subDocId}`;
 
   try {
@@ -244,6 +341,19 @@ export async function queryDocs(
   operator: string,
   value: any
 ): Promise<any[]> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getCollectionStore(collection);
+    const allDocs = Array.from(store.values());
+
+    const isEqualOp = operator === "EQUAL" || operator === "==" || operator === "EQUALS";
+    if (!isEqualOp) {
+      return [];
+    }
+
+    return allDocs.filter((doc) => doc[field] === value).map((doc) => cloneValue(doc));
+  }
+
   const url = `${REST_BASE}/documents:query`;
 
   try {
@@ -285,6 +395,14 @@ export async function listDocs(
   collection: string,
   pageSize: number = 100
 ): Promise<any[]> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getCollectionStore(collection);
+    return Array.from(store.values())
+      .slice(0, pageSize)
+      .map((doc) => cloneValue(doc));
+  }
+
   const url = `${REST_BASE}/documents/${collection}?pageSize=${pageSize}`;
 
   try {
@@ -296,6 +414,11 @@ export async function listDocs(
     });
 
     if (!response.ok) {
+      // In dev mode, return mock data for 403 Forbidden (auth required)
+      if (response.status === 403 && process.env.NODE_ENV !== "production") {
+        console.warn(`Firestore auth not available in dev mode, returning mock data for ${collection}`);
+        return getMockData(collection);
+      }
       throw new Error(`Firestore error: ${response.statusText}`);
     }
 
@@ -303,8 +426,77 @@ export async function listDocs(
     return (result.documents || []).map(parseDoc);
   } catch (error) {
     console.error("listDocs error:", error);
+    // Return mock data as fallback
+    if (process.env.NODE_ENV !== "production") {
+      return getMockData(collection);
+    }
     throw error;
   }
+}
+
+/**
+ * Get mock data for development/testing
+ */
+function getMockData(collection: string): any[] {
+  if (collection === "issues") {
+    return [
+      {
+        id: "issue_1",
+        title: "Pothole on Main Street",
+        description: "Large pothole affecting traffic safety on Main Street near 5th Avenue",
+        status: "OPEN",
+        severity: "HIGH",
+        category: "infrastructure",
+        department: "Public Works",
+        aiConfidence: 0.95,
+        latitude: 40.7128,
+        longitude: -74.0060,
+        address: "Main St & 5th Ave",
+        voteCount: 12,
+        commentCount: 3,
+        createdBy: "demo_user",
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "issue_2",
+        title: "Broken streetlight",
+        description: "Street light has been broken for two weeks. Safety hazard at night.",
+        status: "IN_PROGRESS",
+        severity: "MEDIUM",
+        category: "lighting",
+        department: "Parks & Recreation",
+        aiConfidence: 0.87,
+        latitude: 40.7150,
+        longitude: -74.0080,
+        address: "Park Ave & 10th St",
+        voteCount: 8,
+        commentCount: 2,
+        createdBy: "demo_user2",
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: "issue_3",
+        title: "Trash collection delay",
+        description: "No trash collection for the past 5 days in Zone B",
+        status: "RESOLVED",
+        severity: "LOW",
+        category: "sanitation",
+        department: "Waste Management",
+        aiConfidence: 0.92,
+        latitude: 40.7200,
+        longitude: -74.0100,
+        address: "Zone B Downtown",
+        voteCount: 5,
+        commentCount: 1,
+        createdBy: "demo_user3",
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ];
+  }
+  return [];
 }
 
 /**
@@ -317,6 +509,17 @@ export async function createSubDoc(
   subDocId: string,
   data: any
 ): Promise<any> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getSubCollectionStore(collection, docId, subCollection);
+    const doc = {
+      id: subDocId,
+      ...cloneValue(data),
+    };
+    store.set(subDocId, doc);
+    return cloneValue(doc);
+  }
+
   const url = `${REST_BASE}/documents/${collection}/${docId}/${subCollection}/${subDocId}`;
   const fields = Object.entries(data).reduce((acc: any, [k, v]) => {
     acc[k] = toField(v);
@@ -354,6 +557,12 @@ export async function listSubDocs(
   docId: string,
   subCollection: string
 ): Promise<any[]> {
+  if (USE_LOCAL_STORE) {
+    ensureLocalSeeded();
+    const store = getSubCollectionStore(collection, docId, subCollection);
+    return Array.from(store.values()).map((doc) => cloneValue(doc));
+  }
+
   const url = `${REST_BASE}/documents/${collection}/${docId}/${subCollection}?pageSize=100`;
 
   try {

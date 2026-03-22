@@ -27,7 +27,17 @@ const router = Router();
 router.post("/", requireFirebaseAuth, async (req: Request, res: Response) => {
   try {
     const uid = (req as any).authUser?.uid;
-    const { title, description, latitude, longitude, address, voiceNoteUrl, priority } = req.body;
+    const {
+      title,
+      description,
+      latitude,
+      longitude,
+      address,
+      voiceNoteUrl,
+      photoUrls,
+      language,
+      priority,
+    } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({ error: "Title and description required" });
@@ -50,6 +60,8 @@ router.post("/", requireFirebaseAuth, async (req: Request, res: Response) => {
       latitude: latitude || null,
       longitude: longitude || null,
       address: address || "",
+      language: language || "en",
+      photoUrls: Array.isArray(photoUrls) ? photoUrls : [],
       voiceNoteUrl: voiceNoteUrl || "",
       voteCount: 0,
       commentCount: 0,
