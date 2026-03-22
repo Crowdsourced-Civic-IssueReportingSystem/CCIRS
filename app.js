@@ -206,6 +206,7 @@ const I18N = {
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   restoreAuthState();
+  requestAnimationFrame(() => document.body.classList.add("ui-ready"));
   if (getStoredAuthToken()) {
     showApp();
     loadDashboard();
@@ -235,9 +236,6 @@ function setupEventListeners() {
   document.getElementById("toggleDemoModeBtn").addEventListener("click", toggleDemoMode);
   document.getElementById("toggleJuryModeBtn").addEventListener("click", toggleJuryMode);
   document.getElementById("togglePitchFlowBtn").addEventListener("click", togglePitchFlow);
-  document.getElementById("pitchPrevBtn").addEventListener("click", () => stepPitchFlow(-1));
-  document.getElementById("pitchNextBtn").addEventListener("click", () => stepPitchFlow(1));
-  document.getElementById("pitchResetBtn").addEventListener("click", resetPitchFlow);
   document.getElementById("togglePitchFullscreenBtn").addEventListener("click", togglePitchFullscreen);
   document.getElementById("privacyClose").addEventListener("click", closePrivacyModal);
   document.addEventListener("click", handleGlobalClick);
@@ -271,9 +269,6 @@ function showApp() {
   document.getElementById("liveBadge").classList.remove("d-none");
   document.getElementById("toggleJuryModeBtn").classList.remove("d-none");
   document.getElementById("togglePitchFlowBtn").classList.remove("d-none");
-  document.getElementById("pitchPrevBtn").classList.remove("d-none");
-  document.getElementById("pitchNextBtn").classList.remove("d-none");
-  document.getElementById("pitchResetBtn").classList.remove("d-none");
   document.getElementById("togglePitchFullscreenBtn").classList.remove("d-none");
   applyJuryMode(juryModeEnabled);
   startLiveRefresh();
@@ -286,9 +281,6 @@ function hideApp() {
   document.getElementById("liveBadge").classList.add("d-none");
   document.getElementById("toggleJuryModeBtn").classList.add("d-none");
   document.getElementById("togglePitchFlowBtn").classList.add("d-none");
-  document.getElementById("pitchPrevBtn").classList.add("d-none");
-  document.getElementById("pitchNextBtn").classList.add("d-none");
-  document.getElementById("pitchResetBtn").classList.add("d-none");
   document.getElementById("togglePitchFullscreenBtn").classList.add("d-none");
   exitPitchFullscreenIfNeeded();
   stopPitchFlow();
@@ -1172,9 +1164,6 @@ function applyUiLanguage(lang) {
   setText("toggleDemoModeBtn", demoModeEnabled ? copy.demoModeOn : copy.demoModeOff);
   setText("toggleJuryModeBtn", juryModeEnabled ? copy.juryModeOn : copy.juryModeOff);
   setText("togglePitchFlowBtn", pitchFlowTimer ? copy.pitchFlowStop : copy.pitchFlowStart);
-  setText("pitchPrevBtn", copy.pitchPrev);
-  setText("pitchNextBtn", copy.pitchNext);
-  setText("pitchResetBtn", copy.pitchReset);
   setText("togglePitchFullscreenBtn", document.fullscreenElement ? copy.pitchFullscreenOff : copy.pitchFullscreenOn);
   setText("pitchHintText", copy.pitchHintText);
   setText("pitchGuideTitle", copy.pitchGuideTitle);
@@ -1462,15 +1451,6 @@ function stepPitchFlow(delta) {
   const node = document.getElementById(nextId);
   if (!node) return;
   runPitchStep(node, nextIndex, total);
-}
-
-function resetPitchFlow() {
-  if (!ensurePitchReady()) return;
-  currentPitchStepIndex = 0;
-  const firstId = activePitchNodeIds[0];
-  const firstNode = firstId ? document.getElementById(firstId) : null;
-  if (!firstNode) return;
-  runPitchStep(firstNode, 0, activePitchNodeIds.length);
 }
 
 function ensurePitchReady() {
