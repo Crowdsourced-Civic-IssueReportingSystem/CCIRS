@@ -29,6 +29,16 @@ if (!IS_VERCEL) {
     res.sendFile(path.resolve(__dirname, "../index.html"));
   });
 }
+if (IS_VERCEL) {
+  app.get("/", (req: Request, res: Response) => {
+    res.json({
+      service: "CCIRS API",
+      status: "ok",
+      health: "/api/health",
+      routes: ["/api/auth", "/api/issues", "/api/transparency"],
+    });
+  });
+}
 
 // Health check (support both direct and /api-prefixed paths)
 app.get(["/health", "/api/health"], (req: Request, res: Response) => {
