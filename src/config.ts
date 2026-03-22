@@ -11,7 +11,7 @@ const required = (key: string, fallback?: string): string => {
 };
 
 export const config = {
-  port: Number(process.env.PORT ?? 3000),
+  port: Number(process.env.PORT ?? 3002),
   corsOrigin: process.env.CORS_ORIGIN ?? "*",
   nodeEnv: process.env.NODE_ENV ?? "development",
   dbUrl: required("DATABASE_URL"),

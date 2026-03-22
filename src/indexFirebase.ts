@@ -13,7 +13,7 @@ import issuesRoutes from "./routes/issuesFirebase";
 import transparencyRoutes from "./routes/transparencyFirebase";
 
 const app: Express = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(helmet());
