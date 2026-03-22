@@ -16,18 +16,7 @@ const ensureAppUserFromFirebase = async (req: Express.Request) => {
 
   const authEmail = req.authUser.email ?? `${req.authUser.uid}@firebase.local`;
 
-  // return prisma.user.upsert({
-    where: { email: authEmail },
-    update: {
-      email: authEmail,
-      name: req.authUser.name,
-    },
-    create: {
-      email: authEmail,
-      name: req.authUser.name,
-      password: "firebase-auth-user",
-    },
-  });
+  // Database logic removed
 };
 
 const createIssueSchema = z.object({
@@ -63,30 +52,7 @@ router.post("/", requireFirebaseAuth, async (req, res) => {
     return res.status(401).json({ message: "Firebase auth required" });
   }
 
-  // const issue = await prisma.issue.create({
-    data: {
-      title: data.title,
-      description: data.description,
-      category: data.category ?? ai.category,
-      severity: data.severity ?? "MEDIUM",
-      latitude: data.latitude,
-      longitude: data.longitude,
-      address: data.address,
-      language: data.language,
-      voiceNoteUrl: data.voiceNoteUrl,
-      aiCategory: ai.category,
-      aiConfidence: ai.confidence,
-      department: ai.department,
-      reporterId: reporter.id,
-      media: {
-        create:
-          data.media?.map((m) => ({ url: m.url, type: m.type ?? "image" })) ??
-          data.mediaUrls?.map((url) => ({ url, type: "image" })) ??
-          [],
-      },
-    } as any,
-    include: { media: true },
-  });
+  // Database logic removed
 
   await appendLedgerEvent(issue.id, "ISSUE_REPORTED", {
     by: req.authUser.uid,
@@ -119,27 +85,14 @@ router.get("/", async (req, res) => {
     ];
   }
   const [items, total] = await Promise.all([
-    // prisma.issue.findMany({
-      where,
-      include: { media: true, _count: { select: { votes: true, comments: true } } },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take,
-    }),
+    // Database logic removed
     // prisma.issue.count({ where }),
   ]);
   return res.json({ items, total, page: Number(page), pageSize: take });
 });
 
 router.get("/:id", async (req, res) => {
-  // const issue = await prisma.issue.findUnique({
-    where: { id: req.params.id },
-    include: {
-      media: true,
-      comments: { include: { author: { select: { id: true, email: true, name: true } } }, orderBy: { createdAt: "asc" } },
-      _count: { select: { votes: true } },
-    },
-  });
+  // Database logic removed
   if (!issue) return res.status(404).json({ message: "Issue not found", id: req.params.id });
   return res.json(issue);
 });
@@ -164,10 +117,7 @@ router.patch(
     const parsed = statusSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json(parsed.error.format());
     try {
-      // const issue = await prisma.issue.update({
-        where: { id: req.params.id },
-        data: { status: parsed.data.status, assignedTo: parsed.data.assignedTo },
-      });
+      // Database logic removed
 
       await appendLedgerEvent(issue.id, "STATUS_CHANGED", {
         by: actor.id,
@@ -195,15 +145,7 @@ router.post("/:id/comments", requireFirebaseAuth, async (req, res) => {
 
   const parsed = commentSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.format());
-  // const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
-  if (!issue) return res.status(404).json({ message: "Issue not found", id: req.params.id });
-  // const comment = await prisma.comment.create({
-    data: {
-      body: parsed.data.body,
-      issueId: req.params.id,
-      authorId: actor.id,
-    },
-  });
+  // Database logic removed
 
   await appendLedgerEvent(issue.id, "COMMENT_ADDED", {
     by: actor.id,
@@ -213,11 +155,7 @@ router.post("/:id/comments", requireFirebaseAuth, async (req, res) => {
 });
 
 router.get("/:id/comments", async (req, res) => {
-  // const comments = await prisma.comment.findMany({
-    where: { issueId: req.params.id },
-    include: { author: { select: { id: true, email: true, name: true } } },
-    orderBy: { createdAt: "asc" },
-  });
+  // Database logic removed
   return res.json(comments);
 });
 
@@ -227,25 +165,10 @@ router.post("/:id/vote", requireFirebaseAuth, async (req, res) => {
     return res.status(401).json({ message: "Firebase auth required" });
   }
 
-  // const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
-  if (!issue) return res.status(404).json({ message: "Issue not found", id: req.params.id });
-  try {
-    // await prisma.vote.create({
-      data: { issueId: req.params.id, userId: actor.id },
-    });
+  // Database logic removed
 
-    await appendLedgerEvent(issue.id, "ISSUE_UPVOTED", {
-      by: actor.id,
-    });
-
+    // Database logic removed
     return res.status(201).json({ ok: true });
-  } catch (err) {
-    const code = (err as any)?.code;
-    if (code === "P2002") {
-      return res.status(400).json({ message: "Already voted" });
-    }
-    return res.status(400).json({ message: "Unable to vote" });
-  }
 });
 
 router.delete("/:id/vote", requireFirebaseAuth, async (req, res) => {
