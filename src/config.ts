@@ -8,7 +8,7 @@ const withDefault = (key: string, fallback: string): string => {
 };
 
 export const config = {
-  port: Number(process.env.PORT ?? 3002),
+  port: Number(process.env.PORT ?? 3003),
   corsOrigin: process.env.CORS_ORIGIN ?? "*",
   nodeEnv: process.env.NODE_ENV ?? "development",
   // Optional for Firebase/Firestore deployments (e.g., Vercel serverless path).

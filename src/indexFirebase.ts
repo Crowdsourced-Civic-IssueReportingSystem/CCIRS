@@ -14,7 +14,7 @@ import issuesRoutes from "./routes/issuesFirebase";
 import transparencyRoutes from "./routes/transparencyFirebase";
 
 const app: Express = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 const IS_VERCEL = process.env.VERCEL === "1";
 
 // Middleware
