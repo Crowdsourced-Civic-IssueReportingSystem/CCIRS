@@ -59,19 +59,22 @@ app.use((error: any, req: Request, res: Response) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`✅ CCIRS Backend running on port ${PORT}`);
-  console.log(`📊 API Documentation:`);
-  console.log(`   GET  /health - Health check`);
-  console.log(`   GET  /auth/me - Get current user`);
-  console.log(`   POST /auth/sync - Sync user to Firestore`);
-  console.log(`   GET  /issues - List issues`);
-  console.log(`   POST /issues - Create issue`);
-  console.log(`   GET  /issues/:id - Get issue detail`);
-  console.log(`   POST /issues/:id/vote - Vote on issue`);
-  console.log(`   GET  /transparency/issues/:id/timeline - Issue timeline`);
-  console.log(`🔥 Database: Firestore`);
-  console.log(`🔐 Auth: Firebase ID tokens`);
-});
+// Vercel serverless functions should export the app without opening a listener.
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(`CCIRS Backend running on port ${PORT}`);
+    console.log("API Documentation:");
+    console.log("   GET  /health - Health check");
+    console.log("   GET  /auth/me - Get current user");
+    console.log("   POST /auth/sync - Sync user to Firestore");
+    console.log("   GET  /issues - List issues");
+    console.log("   POST /issues - Create issue");
+    console.log("   GET  /issues/:id - Get issue detail");
+    console.log("   POST /issues/:id/vote - Vote on issue");
+    console.log("   GET  /transparency/issues/:id/timeline - Issue timeline");
+    console.log("Database: Firestore");
+    console.log("Auth: Firebase ID tokens");
+  });
+}
 
 export default app;
