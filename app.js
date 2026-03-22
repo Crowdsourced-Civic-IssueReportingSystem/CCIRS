@@ -205,15 +205,9 @@ const I18N = {
 
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
-  restoreAuthState();
-  if (getStoredAuthToken()) {
-    showApp();
-    loadDashboard();
-  } else {
-    hideApp();
-  }
 });
 
+// Event listeners setup
 function setupEventListeners() {
   document.getElementById("complaintForm").addEventListener("submit", handleSubmitIssue);
   document.getElementById("getLocationBtn").addEventListener("click", getLocation);

@@ -1,12 +1,24 @@
 :root {
   --ccirs-font: "Manrope", "Segoe UI", sans-serif;
   --ccirs-surface: #ffffff;
+<<<<<<< HEAD
   --ccirs-border: #dbe4f0;
   --ccirs-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+=======
+  --ccirs-border: #d4e1f1;
+  --ccirs-text: #0f172a;
+  --ccirs-muted: #516179;
+  --ccirs-primary: #0b63f6;
+  --ccirs-primary-soft: #e8f0ff;
+  --ccirs-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+  --ccirs-shadow-soft: 0 8px 22px rgba(15, 23, 42, 0.07);
+  --ccirs-radius: 14px;
+>>>>>>> 373e95a9f655d977d71a0a7b5156ab7570ffb1c3
 }
 
 body {
   font-family: var(--ccirs-font);
+<<<<<<< HEAD
   background: linear-gradient(180deg, #f7f9fc 0%, #eef3fb 100%);
   min-height: 100vh;
 }
@@ -31,6 +43,160 @@ form {
 
 .btn {
   border-radius: 10px;
+=======
+  color: var(--ccirs-text);
+  background:
+    radial-gradient(1100px 520px at 90% -8%, #d6e8ff 0%, rgba(214, 232, 255, 0) 60%),
+    radial-gradient(840px 460px at 10% -12%, #e3f6f1 0%, rgba(227, 246, 241, 0) 58%),
+    linear-gradient(180deg, #f7f9fc 0%, #edf3fc 100%);
+  min-height: 100vh;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(42px);
+}
+
+body::before {
+  width: 320px;
+  height: 320px;
+  right: -88px;
+  top: 132px;
+  background: rgba(59, 130, 246, 0.18);
+}
+
+body::after {
+  width: 280px;
+  height: 280px;
+  left: -80px;
+  top: 430px;
+  background: rgba(16, 185, 129, 0.16);
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1040;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.88);
+}
+
+.navbar .container-fluid {
+  gap: 10px;
+  min-height: 66px;
+}
+
+.navbar-brand {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #f8fafc;
+}
+
+.navbar .form-select,
+.navbar .btn {
+  min-height: 34px;
+}
+
+#apiStatus {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.container.mt-5 {
+  margin-top: 1.9rem !important;
+}
+
+.issues-map {
+  width: 100%;
+  height: 340px;
+  border-radius: var(--ccirs-radius);
+  border: 1px solid var(--ccirs-border);
+  box-shadow: var(--ccirs-shadow-soft);
+}
+
+form {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.card {
+  border: 1px solid var(--ccirs-border);
+  border-radius: var(--ccirs-radius);
+  box-shadow: var(--ccirs-shadow);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, #ffffff 100%);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui-ready .card {
+  animation: cardRise 0.45s ease both;
+}
+
+#statsCards .col-6:nth-child(1) .card,
+#kpiCards .col-12:nth-child(1) .card {
+  animation-delay: 0.04s;
+}
+
+#statsCards .col-6:nth-child(2) .card,
+#kpiCards .col-12:nth-child(2) .card {
+  animation-delay: 0.1s;
+}
+
+#statsCards .col-6:nth-child(3) .card,
+#kpiCards .col-12:nth-child(3) .card {
+  animation-delay: 0.16s;
+}
+
+#statsCards .col-6:nth-child(4) .card {
+  animation-delay: 0.22s;
+}
+
+.btn {
+  border-radius: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.btn-sm {
+  border-radius: 10px;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.form-control,
+.form-select {
+  border-radius: 10px;
+  border: 1px solid #ccd9ea;
+  background: #ffffff;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 0.22rem rgba(59, 130, 246, 0.18);
+>>>>>>> 373e95a9f655d977d71a0a7b5156ab7570ffb1c3
 }
 
 .architecture-flow {
@@ -57,18 +223,53 @@ form {
 }
 
 .stat-card {
+<<<<<<< HEAD
   border: 0;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
 .stat-label {
   color: #6b7280;
+=======
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: var(--ccirs-shadow-soft);
+}
+
+.stat-label {
+  color: var(--ccirs-muted);
+>>>>>>> 373e95a9f655d977d71a0a7b5156ab7570ffb1c3
   margin-bottom: 6px;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
+<<<<<<< HEAD
+=======
+.list-group-item {
+  border-color: #e2e8f0;
+  transition: background-color 0.16s ease;
+}
+
+#transparencyFeed .list-group-item {
+  background: #fcfdff;
+}
+
+#transparencyFeed .list-group-item:hover {
+  background: #f4f8ff;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(11, 99, 246, 0.85);
+  outline-offset: 2px;
+}
+
+>>>>>>> 373e95a9f655d977d71a0a7b5156ab7570ffb1c3
 #issuesList .card {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -320,6 +521,63 @@ body.no-scroll {
   font-weight: 700;
 }
 
+<<<<<<< HEAD
+=======
+@media (max-width: 991.98px) {
+  .navbar .container-fluid {
+    align-items: stretch;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .navbar .container-fluid > .d-flex {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .navbar .form-select {
+    width: 84px;
+  }
+
+  #apiStatus {
+    font-size: 0.82rem;
+  }
+
+  .container.mt-5 {
+    margin-top: 1.3rem !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  body {
+    font-size: 0.95rem;
+  }
+
+  .card {
+    border-radius: 12px;
+  }
+
+  .issues-map {
+    height: 280px;
+  }
+
+  body.pitch-fullscreen .container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  body.pitch-fullscreen #appSection {
+    font-size: 1rem;
+  }
+
+  body.pitch-fullscreen .issues-map {
+    height: 300px;
+  }
+}
+
+>>>>>>> 373e95a9f655d977d71a0a7b5156ab7570ffb1c3
 body.dark-mode {
   background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
   color: #e5e7eb;
@@ -378,16 +636,85 @@ body.dark-mode #pitchScriptCard {
 
 body.pitch-fullscreen .container {
   max-width: 100%;
+<<<<<<< HEAD
   padding-left: 24px;
   padding-right: 24px;
 }
 
 body.pitch-fullscreen #appSection {
   font-size: 1.08rem;
+=======
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+body.pitch-fullscreen #appSection {
+  font-size: 1.14rem;
+  line-height: 1.55;
+>>>>>>> 373e95a9f655d977d71a0a7b5156ab7570ffb1c3
 }
 
 body.pitch-fullscreen .card {
   border-radius: 16px;
+<<<<<<< HEAD
+=======
+  box-shadow: 0 20px 36px rgba(15, 23, 42, 0.18);
+}
+
+body.pitch-fullscreen .card-body {
+  padding: 1.2rem 1.25rem;
+}
+
+body.pitch-fullscreen h3,
+body.pitch-fullscreen h4,
+body.pitch-fullscreen h5 {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+body.pitch-fullscreen .stat-label {
+  font-size: 0.9rem;
+}
+
+body.pitch-fullscreen #statsCards h3,
+body.pitch-fullscreen #kpiCards h4 {
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+}
+
+body.pitch-fullscreen #juryStoryText,
+body.pitch-fullscreen #pitchGuideText {
+  font-size: 1rem;
+}
+
+body.pitch-fullscreen .timeline-btn,
+body.pitch-fullscreen .btn-sm {
+  font-size: 0.93rem;
+}
+
+body.pitch-fullscreen #apiStatus {
+  font-size: 0.86rem;
+}
+
+body.pitch-fullscreen #pitchStepBadge,
+body.pitch-fullscreen #pitchModeBadge,
+body.pitch-fullscreen #juryBadge,
+body.pitch-fullscreen #liveBadge,
+body.pitch-fullscreen #demoBadge {
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
+body.pitch-fullscreen #transparencyFeed .list-group-item {
+  padding: 0.88rem 0.95rem;
+}
+
+body.pitch-fullscreen .issues-map {
+  height: 390px;
+}
+
+body.pitch-fullscreen #pitchKeyHints {
+  font-size: 0.95rem;
+>>>>>>> 373e95a9f655d977d71a0a7b5156ab7570ffb1c3
 }
 
 #pitchKeyHints {
@@ -401,6 +728,34 @@ body.dark-mode #pitchKeyHints {
   background: linear-gradient(90deg, rgba(251, 191, 36, 0.26) 0%, rgba(251, 191, 36, 0.12) 100%);
 }
 
+<<<<<<< HEAD
+=======
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes cardRise {
+  0% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+>>>>>>> 373e95a9f655d977d71a0a7b5156ab7570ffb1c3
 @keyframes pitchPulse {
   0% {
     transform: scale(0.99);
