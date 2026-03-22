@@ -5,6 +5,7 @@ import morgan from "morgan";
 import { config } from "./config";
 import authRoutes from "./routes/auth";
 import issueRoutes from "./routes/issues";
+import transparencyRoutes from "./routes/transparency";
 import { prisma } from "./db";
 
 const app = express();
@@ -24,6 +25,7 @@ app.get("/health", async (_, res) => {
 
 app.use("/auth", authRoutes);
 app.use("/issues", issueRoutes);
+app.use("/transparency", transparencyRoutes);
 
 app.use((_, res) => res.status(404).json({ message: "Not found" }));
 
