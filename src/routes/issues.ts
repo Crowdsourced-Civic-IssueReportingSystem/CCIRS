@@ -54,21 +54,9 @@ router.post("/", requireFirebaseAuth, async (req, res) => {
 
   // Database logic removed
 
-  await appendLedgerEvent(issue.id, "ISSUE_REPORTED", {
-    by: req.authUser.uid,
-    title: data.title,
-    language: data.language ?? null,
-    latitude: data.latitude,
-    longitude: data.longitude,
-  });
-
-  await appendLedgerEvent(issue.id, "ISSUE_ROUTED", {
-    category: ai.category,
-    department: ai.department,
-    confidence: ai.confidence,
-  });
-
-  return res.status(201).json(issue);
+    // Database removed: return demo issue
+    const issue = { id: "demo-issue", ...data, reporterId: (reporter as any).id };
+    return res.status(201).json(issue);
 });
 
 router.get("/", async (req, res) => {
@@ -84,17 +72,13 @@ router.get("/", async (req, res) => {
       { description: { contains: search, mode: "insensitive" } },
     ];
   }
-  const [items, total] = await Promise.all([
-    // Database logic removed
-    // prisma.issue.count({ where }),
-  ]);
-  return res.json({ items, total, page: Number(page), pageSize: take });
+  // Database removed: return demo list
+  return res.json({ items: [], total: 0, page: Number(page), pageSize: take });
 });
 
 router.get("/:id", async (req, res) => {
-  // Database logic removed
-  if (!issue) return res.status(404).json({ message: "Issue not found", id: req.params.id });
-  return res.json(issue);
+  // Database removed: return demo issue
+  return res.json({ id: req.params.id, title: "Demo Issue" });
 });
 
 const statusSchema = z.object({
@@ -110,28 +94,14 @@ router.patch(
     if (!actor) {
       return res.status(401).json({ message: "Firebase auth required" });
     }
-    if (!["MODERATOR", "ADMIN"].includes(actor.role)) {
+    if (!["MODERATOR", "ADMIN"].includes((actor as any).role)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
     const parsed = statusSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json(parsed.error.format());
-    try {
-      // Database logic removed
-
-      await appendLedgerEvent(issue.id, "STATUS_CHANGED", {
-        by: actor.id,
-        status: parsed.data.status,
-        assignedTo: parsed.data.assignedTo ?? null,
-      });
-
-      return res.json(issue);
-    } catch (err: any) {
-      if (err.code === "P2025") {
-        return res.status(404).json({ message: "Issue not found", id: req.params.id });
-      }
-      return res.status(500).json({ message: "Unable to update issue" });
-    }
+    // Database removed: return demo issue
+    return res.json({ id: req.params.id, status: parsed.data.status, assignedTo: parsed.data.assignedTo });
   },
 );
 
@@ -147,16 +117,13 @@ router.post("/:id/comments", requireFirebaseAuth, async (req, res) => {
   if (!parsed.success) return res.status(400).json(parsed.error.format());
   // Database logic removed
 
-  await appendLedgerEvent(issue.id, "COMMENT_ADDED", {
-    by: actor.id,
-  });
-
-  return res.status(201).json(comment);
+  // Database removed: return demo comment
+  return res.status(201).json({ id: "demo-comment", body: parsed.data.body, authorId: (actor as any).id });
 });
 
 router.get("/:id/comments", async (req, res) => {
-  // Database logic removed
-  return res.json(comments);
+  // Database removed: return demo comments
+  return res.json([{ id: "demo-comment", body: "Demo", authorId: "demo" }]);
 });
 
 router.post("/:id/vote", requireFirebaseAuth, async (req, res) => {
@@ -178,12 +145,8 @@ router.delete("/:id/vote", requireFirebaseAuth, async (req, res) => {
   }
 
   // const issue = await prisma.issue.findUnique({ where: { id: req.params.id } });
-  if (!issue) return res.status(404).json({ message: "Issue not found", id: req.params.id });
-  // await prisma.vote.deleteMany({ where: { issueId: req.params.id, userId: actor.id } });
 
-  await appendLedgerEvent(issue.id, "ISSUE_UNVOTED", {
-    by: actor.id,
-  });
+    // Database removed: do nothing
 
   return res.json({ ok: true });
 });
