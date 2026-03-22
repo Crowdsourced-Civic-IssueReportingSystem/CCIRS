@@ -9,10 +9,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 </head>
 
 <body>
+
+<a href="#appSection" class="skip-link">Skip to content</a>
+<div id="srStatus" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
 
 <nav class="navbar navbar-expand-lg">
   <div class="container-fluid">
@@ -153,9 +155,20 @@
       </div>
     </div>
 
+    <div class="card mb-4 d-none" id="reportAuthCta">
+      <div class="card-body">
+        <h5 class="mb-2" id="reportAuthCtaTitle">Login required to submit issues</h5>
+        <p class="text-muted mb-3" id="reportAuthCtaText">You can view recent issues publicly. To raise a new issue, please login or register first.</p>
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="button" class="btn btn-outline-primary" id="reportAuthCtaLogin">Login</button>
+          <button type="button" class="btn btn-primary" id="reportAuthCtaRegister">Register</button>
+        </div>
+      </div>
+    </div>
+
     <div class="row mb-4" id="reportingRow">
       <div class="col-lg-7 mb-3">
-        <div class="card">
+          <div class="card">
           <div class="card-body">
             <h5 class="mb-3">Report a Civic Issue</h5>
             <form id="complaintForm">
@@ -229,6 +242,7 @@
               <button type="button" class="btn btn-outline-secondary ms-2" id="refreshBtn">Refresh Data</button>
 
               <div id="complaintError" class="alert alert-danger mt-3 d-none"></div>
+              <div id="complaintInfo" class="alert alert-info mt-3 d-none"></div>
               <div id="complaintSuccess" class="alert alert-success mt-3 d-none"></div>
             </form>
           </div>
@@ -260,6 +274,7 @@
         </div>
         <div class="row g-2 mb-3 hide-in-jury">
           <div class="col-md-4">
+            <label for="issueSearch" class="visually-hidden">Search issues</label>
             <input type="text" class="form-control" id="issueSearch" placeholder="Search issues..." aria-label="Search issues">
           </div>
           <div class="col-md-3">
@@ -280,6 +295,18 @@
             <button type="button" class="btn btn-outline-secondary w-100" id="clearFiltersBtn">Clear Filters</button>
           </div>
         </div>
+        <div id="issuesSkeleton" class="row g-3" hidden>
+          <div class="col-md-6"><div class="skeleton-card"></div></div>
+          <div class="col-md-6"><div class="skeleton-card"></div></div>
+          <div class="col-md-6"><div class="skeleton-card"></div></div>
+          <div class="col-md-6"><div class="skeleton-card"></div></div>
+        </div>
+        <div id="issuesEmptyState" class="empty-state" hidden>
+          <div class="empty-state-icon">&#129517;</div>
+          <h5 class="mb-1">No issues found</h5>
+          <p class="text-secondary mb-3">Try changing filters or submit a new civic issue.</p>
+          <button id="clearFiltersEmptyBtn" class="btn btn-outline-primary btn-sm" type="button">Clear filters</button>
+        </div>
         <div id="issuesList" class="row"></div>
         <div id="issuesEmpty" class="text-muted d-none">No issues found.</div>
         <div id="issuesError" class="text-danger d-none"></div>
@@ -298,16 +325,6 @@
         </div>
         <div id="transparencyFeed" class="list-group list-group-flush"></div>
         <div id="transparencyEmpty" class="text-muted d-none">No public updates yet.</div>
-      </div>
-    </div>
-
-    <div class="card mt-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h4 class="mb-0" id="mapTitle">Neighborhood Issue Map</h4>
-          <small class="text-muted" id="mapMeta"></small>
-        </div>
-        <div id="issuesMap" class="issues-map"></div>
       </div>
     </div>
 
@@ -355,6 +372,54 @@
         </div>
       </div>
     </div>
+
+    <div class="card mt-3">
+      <div class="card-body">
+        <h4 class="mb-3">How CCIRS Works: End-to-End Mechanism</h4>
+        <p class="text-muted mb-3">
+          The Crowdsourced Civic Issue Reporting and Resolution System operates through a streamlined,
+          end-to-end process designed to connect citizens with the correct government authorities efficiently.
+        </p>
+
+        <div class="mb-3">
+          <h5 class="mb-2">1. Issue Reporting via User Interface</h5>
+          <p class="mb-2">The workflow begins when a citizen encounters a civic problem and accesses the platform, which is designed as a unified mobile and web application.</p>
+          <ul class="small mb-0">
+            <li><strong>Multimedia Inputs:</strong> Users can submit geotagged reports with photos, text, and voice notes.</li>
+            <li><strong>Precision Mapping:</strong> The exact issue location is captured using PostgreSQL with geospatial APIs for high-precision mapping.</li>
+            <li><strong>Accessible Design:</strong> A multilingual interface keeps reporting simple for non-tech users.</li>
+          </ul>
+        </div>
+
+        <div class="mb-3">
+          <h5 class="mb-2">2. Automated Processing and AI Routing</h5>
+          <p class="mb-2">After submission, the intelligent back end takes over and routes the issue automatically.</p>
+          <ul class="small mb-0">
+            <li><strong>AI Classification:</strong> An AI engine integrated with TensorFlow Lite classifies issues from submitted content.</li>
+            <li><strong>Department Allocation:</strong> Issues are auto-assigned to the correct government department without manual sorting.</li>
+          </ul>
+        </div>
+
+        <div class="mb-3">
+          <h5 class="mb-2">3. Immutable Record Keeping</h5>
+          <p class="mb-0">Each report is recorded on a blockchain ledger to provide tamper-proof status tracking and prevent unauthorized changes.</p>
+        </div>
+
+        <div class="mb-3">
+          <h5 class="mb-2">4. Real-Time Tracking and Transparency</h5>
+          <p class="mb-2">Citizens get continuous visibility as departments process the issue.</p>
+          <ul class="small mb-0">
+            <li><strong>Transparency Dashboard:</strong> Users can monitor live progress updates for their issue.</li>
+            <li><strong>End-to-End Visibility:</strong> Tracking covers the full lifecycle from submission to final resolution.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h5 class="mb-2">5. Final Resolution and Impact</h5>
+          <p class="mb-0">By combining easy frontend reporting with intelligent backend routing, CCIRS enables faster reporting, smarter resource allocation, and better civic outcomes for cleaner and greener communities.</p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -387,7 +452,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="app.js"></script>
 
 <div class="position-fixed bottom-0 end-0 p-3 status-toast-wrap">

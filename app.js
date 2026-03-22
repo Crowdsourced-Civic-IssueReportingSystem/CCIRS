@@ -6,8 +6,6 @@ let pinchStartDistance = null;
 let pinchStartScale = 1;
 let liveRefreshTimer = null;
 const LIVE_REFRESH_MS = 8000;
-let issuesMap = null;
-let mapLayerGroup = null;
 let knownStatuses = new Map();
 let lastFeedData = [];
 let demoModeEnabled = false;
@@ -24,6 +22,11 @@ const filters = {
   department: "",
 };
 let currentUiLanguage = localStorage.getItem("uiLanguage") || "en";
+// In-flight upvote guard: issueId -> boolean
+const upvoteInFlight = new Map();
+const srStatusEl = document.getElementById("srStatus");
+const issuesSkeletonEl = document.getElementById("issuesSkeleton");
+const issuesEmptyStateEl = document.getElementById("issuesEmptyState");
 const I18N = {
   en: {
     navbarBrand: "CCIRS Public Dashboard",
@@ -106,12 +109,16 @@ const I18N = {
     yes: "Yes",
     no: "No",
     loginRequired: "Please login first.",
+    alreadyVoted: "You have already upvoted this issue.",
+    voteTimeout: "Upvote timed out. Please try again.",
     authRequired: "Email and password are required.",
     authFailed: "Authentication failed. Make sure the server is running and try again.",
     consentRequired: "Please accept data privacy consent before submitting.",
     timelineOpen: "View Timeline",
     integrityOn: "Integrity: verified",
     integrityOff: "Integrity: pending",
+    reportAuthCtaTitle: "Login required to submit issues",
+    reportAuthCtaText: "You can view recent issues publicly. To raise a new issue, please login or register first.",
   },
   hi: {
     navbarBrand: "CCIRS सार्वजनिक डैशबोर्ड",
@@ -194,17 +201,31 @@ const I18N = {
     yes: "हाँ",
     no: "नहीं",
     loginRequired: "कृपया पहले लॉगिन करें।",
+    alreadyVoted: "आप इस समस्या को पहले ही अपवोट कर चुके हैं।",
+    voteTimeout: "अपवोट में समय सीमा समाप्त हो गई। कृपया फिर प्रयास करें।",
     authRequired: "ईमेल और पासवर्ड आवश्यक हैं।",
     authFailed: "प्रमाणीकरण विफल रहा। सर्वर चल रहा है या नहीं, जांचें।",
     consentRequired: "सबमिट करने से पहले डेटा गोपनीयता सहमति स्वीकार करें।",
     timelineOpen: "टाइमलाइन देखें",
     integrityOn: "इंटीग्रिटी: सत्यापित",
     integrityOff: "इंटीग्रिटी: लंबित",
+    reportAuthCtaTitle: "समस्या सबमिट करने के लिए लॉगिन आवश्यक है",
+    reportAuthCtaText: "आप हाल की समस्याएँ सार्वजनिक रूप से देख सकते हैं। नई समस्या दर्ज करने के लिए पहले लॉगिन या रजिस्टर करें।",
   },
 };
 
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
+  restoreAuthState();
+  requestAnimationFrame(() => document.body.classList.add("ui-ready"));
+
+  if (getStoredAuthToken()) {
+    showApp();
+    loadDashboard();
+  } else {
+    hideApp();
+    loadDashboard(true);
+  }
 });
 
 // Event listeners setup
@@ -215,12 +236,20 @@ function setupEventListeners() {
   document.getElementById("issueLanguage").addEventListener("change", handleLanguageChange);
   document.getElementById("localLoginBtn").addEventListener("click", () => handleLocalAuth("login"));
   document.getElementById("localRegisterBtn").addEventListener("click", () => handleLocalAuth("register"));
+  const ctaLoginBtn = document.getElementById("reportAuthCtaLogin");
+  const ctaRegisterBtn = document.getElementById("reportAuthCtaRegister");
+  if (ctaLoginBtn) ctaLoginBtn.addEventListener("click", () => focusAuthSection("login"));
+  if (ctaRegisterBtn) ctaRegisterBtn.addEventListener("click", () => focusAuthSection("register"));
   document.getElementById("logoutBtn").addEventListener("click", handleLogout);
   document.getElementById("uiLanguage").addEventListener("change", handleUiLanguageChange);
-  document.getElementById("issueSearch").addEventListener("input", handleIssueSearch);
+  document.getElementById("issueSearch").addEventListener("input", debounce((e) => handleIssueSearch(e), 250));
   document.getElementById("issueStatusFilter").addEventListener("change", handleIssueStatusFilter);
   document.getElementById("issueDepartmentFilter").addEventListener("change", handleIssueDepartmentFilter);
   document.getElementById("clearFiltersBtn").addEventListener("click", clearIssueFilters);
+  const clearEmpty = document.getElementById("clearFiltersEmptyBtn");
+  if (clearEmpty) {
+    clearEmpty.addEventListener("click", clearIssueFilters);
+  }
   document.getElementById("toggleDarkModeBtn").addEventListener("click", () => toggleBodyClass("dark-mode"));
   document.getElementById("toggleContrastBtn").addEventListener("click", () => toggleBodyClass("high-contrast"));
   document.getElementById("toggleLargeTextBtn").addEventListener("click", () => toggleBodyClass("large-text"));
@@ -234,11 +263,11 @@ function setupEventListeners() {
   document.addEventListener("click", handleGlobalClick);
   document.addEventListener("keydown", handleLightboxKeydown);
   document.addEventListener("keydown", handlePitchKeydown);
+  document.addEventListener("keydown", handleGlobalShortcutKeydown);
   document.addEventListener("wheel", handleLightboxWheel, { passive: false });
   document.addEventListener("visibilitychange", handleVisibilityChange);
   document.addEventListener("fullscreenchange", syncPitchFullscreenUi);
   initPhotoLightbox();
-  initIssuesMap();
   const uiSelect = document.getElementById("uiLanguage");
   if (uiSelect) {
     uiSelect.value = currentUiLanguage;
@@ -246,6 +275,44 @@ function setupEventListeners() {
   restoreAccessibilityModes();
   applyUiLanguage(currentUiLanguage);
   applyIssueFormLanguage(document.getElementById("issueLanguage").value || "en");
+}
+
+function debounce(fn, wait = 300) {
+  let timerId;
+  return (...args) => {
+    clearTimeout(timerId);
+    timerId = setTimeout(() => fn(...args), wait);
+  };
+}
+
+function announce(message) {
+  if (!srStatusEl) return;
+  srStatusEl.textContent = "";
+  requestAnimationFrame(() => {
+    srStatusEl.textContent = message;
+  });
+}
+
+function setIssuesLoading(isLoading) {
+  if (!issuesSkeletonEl) return;
+  issuesSkeletonEl.hidden = !isLoading;
+}
+
+function setIssuesEmptyState(isEmpty) {
+  if (!issuesEmptyStateEl) return;
+  issuesEmptyStateEl.hidden = !isEmpty;
+}
+
+function handleGlobalShortcutKeydown(event) {
+  const activeTag = (event.target?.tagName || "").toLowerCase();
+  const inField = activeTag === "input" || activeTag === "textarea" || activeTag === "select";
+  if (inField) return;
+
+  if (event.key === "/") {
+    event.preventDefault();
+    const search = document.getElementById("issueSearch");
+    if (search) search.focus();
+  }
 }
 
 function restoreAuthState() {
@@ -258,6 +325,7 @@ function restoreAuthState() {
 function showApp() {
   document.getElementById("authSection").classList.add("d-none");
   document.getElementById("appSection").classList.remove("d-none");
+  setSubmissionAccess(true);
   document.getElementById("logoutBtn").classList.remove("d-none");
   document.getElementById("liveBadge").classList.remove("d-none");
   document.getElementById("toggleJuryModeBtn").classList.remove("d-none");
@@ -269,7 +337,8 @@ function showApp() {
 
 function hideApp() {
   document.getElementById("authSection").classList.remove("d-none");
-  document.getElementById("appSection").classList.add("d-none");
+  document.getElementById("appSection").classList.remove("d-none");
+  setSubmissionAccess(false);
   document.getElementById("logoutBtn").classList.add("d-none");
   document.getElementById("liveBadge").classList.add("d-none");
   document.getElementById("toggleJuryModeBtn").classList.add("d-none");
@@ -284,9 +353,70 @@ function hideApp() {
 }
 
 function handleLogout() {
+  // Clear auth token and cached identity
   storeAuthToken("");
+  localStorage.removeItem("localAuthEmail");
+  const authName = document.getElementById("authName");
+  const authEmail = document.getElementById("authEmail");
+  const authPassword = document.getElementById("authPassword");
+  const complaintForm = document.getElementById("complaintForm");
+  if (authName) authName.value = "";
+  if (authEmail) authEmail.value = "";
+  if (authPassword) authPassword.value = "";
+  if (complaintForm) complaintForm.reset();
+  // Clear transient/private UI messages
+  hideMessage("complaintError");
+  hideMessage("complaintInfo");
+  hideMessage("complaintSuccess");
+  // Clear in-flight upvote actions
+  upvoteInFlight.clear();
+  // Hide all upvote buttons immediately
+  document.querySelectorAll(".upvote-btn").forEach((btn) => btn.classList.add("d-none"));
+  // Close modals that may expose private context
+  closeTimelineModal();
+  closeLightbox();
+  // Hide app and clear known statuses
   hideApp();
   knownStatuses.clear();
+  // Refresh dashboard (public view)
+  loadDashboard(true);
+}
+
+function setSubmissionAccess(isAuthenticated) {
+  const reportingRow = document.getElementById("reportingRow");
+  const reportAuthCta = document.getElementById("reportAuthCta");
+  const complaintForm = document.getElementById("complaintForm");
+  const getLocationBtn = document.getElementById("getLocationBtn");
+
+  if (reportingRow) reportingRow.classList.toggle("d-none", !isAuthenticated);
+  if (reportAuthCta) reportAuthCta.classList.toggle("d-none", isAuthenticated);
+
+  if (complaintForm) {
+    Array.from(complaintForm.elements).forEach((el) => {
+      if (!el) return;
+      el.disabled = !isAuthenticated;
+    });
+  }
+
+  if (getLocationBtn) {
+    getLocationBtn.disabled = !isAuthenticated;
+  }
+}
+
+function focusAuthSection(mode = "login") {
+  const authSection = document.getElementById("authSection");
+  if (authSection) {
+    authSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  const nameInput = document.getElementById("authName");
+  const emailInput = document.getElementById("authEmail");
+  if (mode === "register" && nameInput) {
+    nameInput.focus();
+    return;
+  }
+  if (emailInput) {
+    emailInput.focus();
+  }
 }
 
 function getStoredAuthToken() {
@@ -378,6 +508,7 @@ async function loadDashboard(silent = false) {
   clearIssuesError();
   if (!silent) {
     setApiStatus("Checking API...", "text-warning");
+    setIssuesLoading(true);
   }
 
   try {
@@ -428,12 +559,16 @@ async function loadDashboard(silent = false) {
     renderStats(stats);
     renderKpis(issues);
     renderIssues(issues);
+    setIssuesEmptyState(!Array.isArray(issues) || issues.length === 0);
     renderTransparencyFeed(feed);
-    renderIssuesMap(issues);
     detectStatusChanges(feed);
+    announce(`${Array.isArray(issues) ? issues.length : 0} issues loaded.`);
   } catch (error) {
     setApiStatus("API unavailable", "text-danger");
     showIssuesError(error.message || "Unable to load dashboard data");
+    announce("Failed to load dashboard data.");
+  } finally {
+    setIssuesLoading(false);
   }
 }
 
@@ -445,7 +580,9 @@ async function handleSubmitIssue(e) {
   const token = getStoredAuthToken();
   if (!token) {
     const copy = I18N[currentUiLanguage] || I18N.en;
-    showMessage("complaintError", copy.loginRequired);
+    setSubmissionAccess(false);
+    focusAuthSection("login");
+    showStatusToast(copy.loginRequired);
     return;
   }
 
@@ -477,6 +614,10 @@ async function handleSubmitIssue(e) {
       priority: document.getElementById("issueSeverity").value,
     };
 
+    if (!Number.isFinite(payload.latitude) || !Number.isFinite(payload.longitude)) {
+      throw new Error("Latitude and longitude are required. Use 'Get Location' or enter valid coordinates.");
+    }
+
     const headers = { "Content-Type": "application/json" };
     if (token) {
       headers.Authorization = `Bearer ${token}`;
@@ -502,7 +643,13 @@ async function handleSubmitIssue(e) {
       ? ` ${copy.routedTo}: ${createdIssue.department} (${copy.confidence} ${Math.round((createdIssue.aiConfidence || 0) * 100)}%).`
       : "";
     showMessage("complaintSuccess", `${copy.submitted}${routeHint}`);
-    await loadDashboard();
+
+    // Keep submission success even if post-submit refresh fails.
+    try {
+      await loadDashboard();
+    } catch (refreshError) {
+      console.warn("Issue created but dashboard refresh failed:", refreshError);
+    }
   } catch (error) {
     setSubmitLoading(false);
     showMessage("complaintError", error.message || "Failed to submit issue");
@@ -569,6 +716,7 @@ function renderIssues(issues) {
   const issuesList = document.getElementById("issuesList");
   const issuesEmpty = document.getElementById("issuesEmpty");
   const issuesMeta = document.getElementById("issuesMeta");
+  const canUpvote = Boolean(getStoredAuthToken());
 
   issuesList.innerHTML = "";
   issuesMeta.textContent = `${Array.isArray(issues) ? issues.length : 0} issue(s)`;
@@ -641,11 +789,11 @@ function renderIssues(issues) {
           ${photosPreview}
           ${voicePreview}
           <div class="mt-2">
-            <button type="button" class="btn btn-sm btn-outline-dark timeline-btn" data-issue-id="${escapeHtml(issue.id || "")}">${(I18N[currentUiLanguage] || I18N.en).timelineOpen}</button>
-            <button type="button" class="btn btn-sm btn-outline-primary ms-2 upvote-btn" data-upvote-issue-id="${escapeHtml(issue.id || "")}">+1 ${copy.votes}</button>
+            <button type="button" class="btn btn-sm btn-primary open-issue-btn" data-open-issue-id="${escapeHtml(issue.id || "")}">${(I18N[currentUiLanguage] || I18N.en).timelineOpen}</button>
+            ${canUpvote ? `<button type="button" class="btn btn-sm btn-outline-primary ms-2 upvote-btn" data-upvote-issue-id="${escapeHtml(issue.id || "")}">+1 ${copy.votes}</button>` : ""}
           </div>
           <small class="text-muted d-block">${copy.department}: ${escapeHtml(issue.department || "unassigned")}</small>
-          <small class="text-muted d-block">${copy.votes}: ${issue.voteCount || 0} | ${copy.comments}: ${issue.commentCount || 0}</small>
+          <small class="text-muted d-block">${copy.votes}: <span data-vote-count-for="${escapeHtml(issue.id || "")}">${issue.voteCount || 0}</span> | ${copy.comments}: ${issue.commentCount || 0}</small>
         </div>
         <div class="card-footer bg-transparent">
           <small class="text-muted">${formatDate(issue.createdAt)}</small>
@@ -682,7 +830,7 @@ function renderTransparencyFeed(feed) {
         <div>
           <div class="fw-semibold">${escapeHtml(item.title || "Untitled")}</div>
           <div class="small text-muted">${escapeHtml(item.department || "Unassigned")} | ${escapeHtml(item.category || "general")}</div>
-          <div class="small text-muted">${copy.votes}: ${item.voteCount || 0} | ${copy.comments}: ${item.commentCount || 0}</div>
+          <div class="small text-muted">${copy.votes}: <span data-vote-count-for="${escapeHtml(item.id || "")}">${item.voteCount || 0}</span> | ${copy.comments}: ${item.commentCount || 0}</div>
           <button type="button" class="btn btn-sm btn-link p-0 mt-1 timeline-btn" data-issue-id="${escapeHtml(item.id || "")}">${copy.timelineOpen}</button>
         </div>
         <div class="text-end">
@@ -703,12 +851,15 @@ function setApiStatus(text, className) {
 
 function showMessage(id, text) {
   const el = document.getElementById(id);
+  if (!el) return; // No-op if element missing
   el.textContent = text;
   el.classList.remove("d-none");
 }
 
 function hideMessage(id) {
-  document.getElementById(id).classList.add("d-none");
+  const el = document.getElementById(id);
+  if (!el) return; // No-op if element missing
+  el.classList.add("d-none");
 }
 
 function showIssuesError(text) {
@@ -795,6 +946,15 @@ async function safeJson(response) {
 }
 
 function handleGlobalClick(event) {
+  const openIssueBtn = event.target.closest(".open-issue-btn");
+  if (openIssueBtn) {
+    const issueId = openIssueBtn.getAttribute("data-open-issue-id");
+    if (issueId) {
+      openTimelineModal(issueId);
+    }
+    return;
+  }
+
   const upvoteBtn = event.target.closest(".upvote-btn");
   if (upvoteBtn) {
     const issueId = upvoteBtn.getAttribute("data-upvote-issue-id");
@@ -1138,11 +1298,14 @@ function applyUiLanguage(lang) {
   setText("authSubtitle", copy.authSubtitle);
   setText("localLoginBtn", copy.login);
   setText("localRegisterBtn", copy.register);
+  setText("reportAuthCtaLogin", copy.login);
+  setText("reportAuthCtaRegister", copy.register);
+  setText("reportAuthCtaTitle", copy.reportAuthCtaTitle);
+  setText("reportAuthCtaText", copy.reportAuthCtaText);
   setText("logoutBtn", copy.logout);
   setText("refreshBtn", copy.refreshData);
   setText("recentIssuesTitle", copy.recentIssues);
   setText("transparencyTitle", copy.transparencyFeed);
-  setText("mapTitle", copy.mapTitle);
   setText("architectureTitle", copy.architectureTitle);
   setText("impactTitle", copy.impactTitle);
   setText("scalabilityTitle", copy.scalabilityTitle);
@@ -1192,61 +1355,16 @@ function getStatusSteps(status) {
   }));
 }
 
-function initIssuesMap() {
-  if (issuesMap || typeof window.L === "undefined") return;
-  const mapNode = document.getElementById("issuesMap");
-  if (!mapNode) return;
-
-  issuesMap = window.L.map("issuesMap").setView([20.5937, 78.9629], 4);
-  window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "&copy; OpenStreetMap contributors",
-  }).addTo(issuesMap);
-
-  mapLayerGroup = window.L.layerGroup().addTo(issuesMap);
-}
-
-function renderIssuesMap(issues) {
-  if (!issuesMap || !mapLayerGroup) return;
-  mapLayerGroup.clearLayers();
-
-  const points = (Array.isArray(issues) ? issues : []).filter(
-    (i) => Number.isFinite(Number(i.latitude)) && Number.isFinite(Number(i.longitude))
-  );
-
-  points.forEach((issue) => {
-    const marker = window.L.circleMarker([Number(issue.latitude), Number(issue.longitude)], {
-      radius: 8,
-      color: "#2563eb",
-      fillColor: "#60a5fa",
-      fillOpacity: 0.75,
-      weight: 1,
-    });
-    marker.bindPopup(`<strong>${escapeHtml(issue.title || "Issue")}</strong><br>${escapeHtml(issue.status || "UNKNOWN")}<br>${escapeHtml(issue.address || "")}`);
-    marker.addTo(mapLayerGroup);
-  });
-
-  const meta = document.getElementById("mapMeta");
-  if (meta) {
-    const copy = I18N[currentUiLanguage] || I18N.en;
-    meta.textContent = `${points.length} ${copy.mapped}`;
-  }
-
-  if (points.length > 0) {
-    const bounds = window.L.latLngBounds(points.map((i) => [Number(i.latitude), Number(i.longitude)]));
-    issuesMap.fitBounds(bounds.pad(0.2));
-  }
-}
-
 function detectStatusChanges(feed) {
-  if (!Array.isArray(feed)) return;
+  const items = Array.isArray(feed) ? feed : [];
+  items.forEach((item) => {
+    if (!item || !item.id) return;
 
-  feed.forEach((item) => {
-    if (!item?.id) return;
-    const prev = knownStatuses.get(item.id);
-    if (prev && prev !== item.status) {
-      showStatusToast(`${item.title || "Issue"}: ${prev} -> ${item.status}`);
+    const previousStatus = knownStatuses.get(item.id);
+    if (previousStatus && previousStatus !== item.status) {
+      showStatusToast(`${item.title || "Issue"}: ${previousStatus} -> ${item.status}`);
     }
+
     knownStatuses.set(item.id, item.status);
   });
 }
@@ -1277,29 +1395,100 @@ function showSubmitCheck() {
 
 async function upvoteIssue(issueId) {
   const token = getStoredAuthToken();
+  const copy = I18N[currentUiLanguage] || I18N.en;
   if (!token) {
-    const copy = I18N[currentUiLanguage] || I18N.en;
     showMessage("complaintError", copy.loginRequired);
     return;
   }
+  hideMessage("complaintError");
+  hideMessage("complaintInfo");
+  if (upvoteInFlight.get(issueId)) {
+    return; // Ignore duplicate clicks while in flight
+  }
+  upvoteInFlight.set(issueId, true);
+  const previousVoteCount = getIssueVoteCount(issueId);
+  if (Number.isFinite(previousVoteCount)) {
+    updateIssueVoteCount(issueId, previousVoteCount + 1); // Optimistic UI
+  }
+  setUpvoteButtonLoading(issueId, true);
 
+  let didRollback = false;
+  let timeout;
   try {
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
     const response = await fetch(`${API_BASE_URL}/issues/${encodeURIComponent(issueId)}/vote`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      signal: controller.signal,
     });
-
+    const result = await safeJson(response);
     if (!response.ok) {
-      const err = await safeJson(response);
-      throw new Error(err.error || `Vote failed (${response.status})`);
+      // Special case: Already voted
+      if (result && (result.message === "Already voted" || result.error === "Already voted")) {
+        if (Number.isFinite(previousVoteCount)) {
+          updateIssueVoteCount(issueId, previousVoteCount);
+          didRollback = true;
+        }
+        showMessage("complaintInfo", copy.alreadyVoted || "You have already upvoted this issue.");
+        return;
+      }
+      throw new Error(result.error || result.message || `Vote failed (${response.status})`);
     }
-
-    await loadDashboard(true);
+    if (typeof result.voteCount === "number") {
+      updateIssueVoteCount(issueId, result.voteCount);
+    }
+    // Trigger dashboard reload in background (non-blocking)
+    loadDashboard(true).catch((err) => {
+      console.warn("Post-upvote refresh failed:", err);
+    });
   } catch (error) {
-    showMessage("complaintError", error.message || "Failed to upvote");
+    if (!didRollback && Number.isFinite(previousVoteCount)) {
+      updateIssueVoteCount(issueId, previousVoteCount);
+    }
+    const message = error && error.name === "AbortError" ? copy.voteTimeout : (error.message || "Failed to upvote");
+    showMessage("complaintError", message);
+  } finally {
+    clearTimeout(timeout);
+    setUpvoteButtonLoading(issueId, false);
+    upvoteInFlight.delete(issueId);
   }
+}
+
+function getIssueVoteCount(issueId) {
+  const el = findVoteCountElements(issueId)[0];
+  if (!el) return null;
+  const value = Number(el.textContent);
+  return Number.isFinite(value) ? value : null;
+}
+
+function updateIssueVoteCount(issueId, voteCount) {
+  findVoteCountElements(issueId).forEach((el) => {
+    el.textContent = String(voteCount);
+  });
+
+  if (Array.isArray(lastFeedData)) {
+    lastFeedData = lastFeedData.map((item) =>
+      item && item.id === issueId ? { ...item, voteCount } : item
+    );
+  }
+}
+
+function findVoteCountElements(issueId) {
+  return Array.from(document.querySelectorAll("[data-vote-count-for]")).filter(
+    (el) => el.getAttribute("data-vote-count-for") === issueId
+  );
+}
+
+function setUpvoteButtonLoading(issueId, isLoading) {
+  const buttons = Array.from(document.querySelectorAll(".upvote-btn")).filter(
+    (btn) => btn.getAttribute("data-upvote-issue-id") === issueId
+  );
+  buttons.forEach((btn) => {
+    btn.disabled = isLoading;
+  });
 }
 
 function toggleBodyClass(className) {
@@ -1735,10 +1924,16 @@ function applyIssueFormLanguage(lang) {
 
 async function openTimelineModal(issueId) {
   const copy = I18N[currentUiLanguage] || I18N.en;
+  const canViewPrivate = Boolean(getStoredAuthToken());
   const modal = document.getElementById("timelineModal");
   const content = document.getElementById("timelineContent");
   const meta = document.getElementById("timelineIssueMeta");
   const integrity = document.getElementById("integrityBadge");
+
+  if (!modal || !content || !meta || !integrity) {
+    showStatusToast("Timeline view is currently unavailable");
+    return;
+  }
 
   content.innerHTML = '<div class="text-muted">Loading timeline...</div>';
   meta.textContent = `Issue ID: ${issueId}`;
@@ -1767,13 +1962,17 @@ async function openTimelineModal(issueId) {
     content.innerHTML = timeline
       .map((entry) => {
         const details = entry.details ? JSON.stringify(entry.details) : "";
+        // Hide actor identity row if logged out
+        const actorRow = canViewPrivate
+          ? `<div class="small text-muted">Actor: ${escapeHtml(entry.actor || "system")}</div>`
+          : "";
         return `
           <div class="timeline-item">
             <div class="timeline-head">
               <strong>${escapeHtml(entry.eventType || "EVENT")}</strong>
               <small class="text-muted">${formatDate(entry.timestamp)}</small>
             </div>
-            <div class="small text-muted">Actor: ${escapeHtml(entry.actor || "system")}</div>
+            ${actorRow}
             ${details ? `<pre class="timeline-details">${escapeHtml(details)}</pre>` : ""}
           </div>
         `;

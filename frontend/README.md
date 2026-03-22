@@ -1,32 +1,31 @@
-# CCIRS Frontend
+# CCIRS Frontend (React + Tailwind)
 
-Frontend client for the Crowdsourced Civic Issue Reporting System API.
-
-## Setup
+## Run
 
 ```bash
-# Open index.html in a local web server
-# For example using Python:
-python -m http.server 8000
-
-# Or using Node http-server:
-npm install -g http-server
-http-server
+cd frontend
+npm install
+npm run dev
 ```
 
-## Files
-- `index.html` - Main page
-- `app.js` - Application logic
-- `styles.css` - Styling
+## Stack
 
-## Configuration
+- React (functional components + hooks)
+- React Router
+- Context API
+- Tailwind CSS
+- Lucide Icons
 
-Edit `app.js` to set API endpoint:
+## Structure
 
-```javascript
-const API_BASE_URL = 'http://localhost:3000';
+```txt
+src/
+  components/
+  pages/
+  services/
+  context/
+  hooks/
+  utils/
+  assets/
+  App.jsx
 ```
-
-## API Integration
-
-The frontend connects to the backend API at the configured `API_BASE_URL`. Make sure the backend is running before starting the frontend.

@@ -63,6 +63,42 @@ The implementation of this crowdsourced system is expected to yield significant 
 - Community Well-being: By facilitating faster reporting and resolution, the system contributes directly to the creation of cleaner and greener communities.
 - Data-Driven Governance: High-precision mapping and intelligent classification provide authorities with better data to manage civic resources.
 
+## Full Working Mechanism
+
+The Crowdsourced Civic Issue Reporting and Resolution System operates through a streamlined, end-to-end process designed to connect citizens with the correct government authorities efficiently.
+
+Here is the full working mechanism of the project, from the moment an issue is discovered to its final resolution:
+
+### 1. Issue Reporting via User Interface
+
+The workflow begins when a citizen encounters a civic problem and accesses the platform, which is designed as a unified mobile and web application.
+
+- Multimedia Inputs: Users can submit geotagged reports using photos, text, or voice notes.
+- Precision Mapping: The exact location of the issue is captured using PostgreSQL with geospatial APIs for high-precision mapping.
+- Accessible Design: A multilingual interface simplifies the reporting process for non-tech users.
+
+### 2. Automated Processing and AI Routing
+
+Once the citizen submits the report, the intelligent back end takes over.
+
+- AI Classification: An AI engine integrated with TensorFlow Lite automatically classifies the issue based on submitted content.
+- Department Allocation: The issue is automatically allocated to the correct government department instead of manual sorting.
+
+### 3. Immutable Record Keeping
+
+To secure the data and prevent manipulation, the system records each report on a blockchain ledger. This provides tamper-proof status tracking, ensuring issue records cannot be altered or deleted improperly.
+
+### 4. Real-Time Tracking and Transparency
+
+As the assigned department works on the problem, citizens stay informed through the dashboard.
+
+- Transparency Dashboard: Users can view real-time progress of their specific issue.
+- End-to-End Visibility: Tracking spans from initial submission through final resolution.
+
+### 5. Final Resolution and Impact
+
+By combining easy frontend reporting with intelligent backend routing, the project enables faster reporting and smarter resource allocation, ultimately supporting cleaner and greener communities.
+
 ## 🚀 Quickstart
 
 ### 1. Install Dependencies
