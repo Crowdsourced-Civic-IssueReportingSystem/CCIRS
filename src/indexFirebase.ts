@@ -7,6 +7,7 @@ import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import fs from "fs";
 import path from "path";
 import authRoutes from "./routes/authFirebase";
 import issuesRoutes from "./routes/issuesFirebase";
@@ -22,21 +23,13 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(morgan("combined"));
 app.use(express.json());
 
-// Serve local frontend files only when running as a standalone server.
-if (!IS_VERCEL) {
-  app.use(express.static(path.resolve(__dirname, "../")));
+const WEB_ROOT = path.resolve(__dirname, "../");
+const INDEX_FILE = path.join(WEB_ROOT, "index.html");
+
+if (fs.existsSync(INDEX_FILE)) {
+  app.use(express.static(WEB_ROOT));
   app.get("/", (req: Request, res: Response) => {
-    res.sendFile(path.resolve(__dirname, "../index.html"));
-  });
-}
-if (IS_VERCEL) {
-  app.get("/", (req: Request, res: Response) => {
-    res.json({
-      service: "CCIRS API",
-      status: "ok",
-      health: "/api/health",
-      routes: ["/api/auth", "/api/issues", "/api/transparency"],
-    });
+    res.sendFile(INDEX_FILE);
   });
 }
 
@@ -58,6 +51,14 @@ app.use("/transparency", transparencyRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/issues", issuesRoutes);
 app.use("/api/transparency", transparencyRoutes);
+
+// SPA fallback for frontend routes.
+app.get(/^\/(?!api\/).*/, (req: Request, res: Response, next) => {
+  if (!fs.existsSync(INDEX_FILE)) {
+    return next();
+  }
+  res.sendFile(INDEX_FILE);
+});
 
 // 404 handler
 app.use((req: Request, res: Response) => {
