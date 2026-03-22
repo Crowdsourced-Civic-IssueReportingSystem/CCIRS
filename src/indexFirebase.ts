@@ -31,6 +31,15 @@ if (fs.existsSync(INDEX_FILE)) {
   app.get("/", (req: Request, res: Response) => {
     res.sendFile(INDEX_FILE);
   });
+} else {
+  // If index.html does not exist, respond with a friendly API status message
+  app.get("/", (req: Request, res: Response) => {
+    res.json({
+      message: "CCIRS API is running",
+      status: "ok",
+      timestamp: new Date().toISOString(),
+    });
+  });
 }
 
 // Health check (support both direct and /api-prefixed paths)
