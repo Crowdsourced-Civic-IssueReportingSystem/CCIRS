@@ -4,7 +4,7 @@
  * Works with Firebase Cloud Functions seamlessly
  */
 
-const fetch = require("node-fetch");
+const fetchFn: typeof fetch = (...args) => fetch(...args);
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "crowdsourced-civic-issue-1f5fe";
 
@@ -95,7 +95,7 @@ export async function createDoc(
   }, {});
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -124,7 +124,7 @@ export async function getDoc(collection: string, docId: string): Promise<any> {
   const url = `${REST_BASE}/documents/${collection}/${docId}`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -159,7 +159,7 @@ export async function updateDoc(
   }, {});
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -191,7 +191,7 @@ export async function deleteDoc(
   const url = `${REST_BASE}/documents/${collection}/${docId}`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -219,7 +219,7 @@ export async function deleteSubDoc(
   const url = `${REST_BASE}/documents/${collection}/${docId}/${subCollection}/${subDocId}`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -247,7 +247,7 @@ export async function queryDocs(
   const url = `${REST_BASE}/documents:query`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -288,7 +288,7 @@ export async function listDocs(
   const url = `${REST_BASE}/documents/${collection}?pageSize=${pageSize}`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -324,7 +324,7 @@ export async function createSubDoc(
   }, {});
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -357,7 +357,7 @@ export async function listSubDocs(
   const url = `${REST_BASE}/documents/${collection}/${docId}/${subCollection}?pageSize=100`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchFn(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
