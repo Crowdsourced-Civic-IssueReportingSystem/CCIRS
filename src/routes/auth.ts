@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma } from "../db";
+// import { prisma } from "../db";
 import { requireFirebaseAuth } from "../middleware/firebaseAuth";
 
 const router = Router();
@@ -10,22 +10,15 @@ router.get("/me", requireFirebaseAuth, async (req, res) => {
   }
 
   const authEmail = req.authUser.email ?? `${req.authUser.uid}@firebase.local`;
-  const user = await prisma.user.upsert({
-    where: { email: authEmail },
-    update: { name: req.authUser.name, email: authEmail },
-    create: {
-      email: authEmail,
-      name: req.authUser.name,
-      password: "firebase-auth-user",
-    },
-  });
+  // Database logic removed
 
+  // Database removed: return demo user
   return res.json({
     user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+      id: "demo",
+      email: authEmail,
+      name: req.authUser.name,
+      role: "ADMIN",
       firebaseUid: req.authUser.uid,
     },
   });
@@ -37,17 +30,10 @@ router.post("/sync", requireFirebaseAuth, async (req, res) => {
   }
 
   const authEmail = req.authUser.email ?? `${req.authUser.uid}@firebase.local`;
-  const user = await prisma.user.upsert({
-    where: { email: authEmail },
-    update: { name: req.authUser.name, email: authEmail },
-    create: {
-      email: authEmail,
-      name: req.authUser.name,
-      password: "firebase-auth-user",
-    },
-  });
+  // Database logic removed
 
-  return res.status(200).json({ ok: true, user: { id: user.id, role: user.role } });
+  // Database removed: return demo user
+  return res.status(200).json({ ok: true, user: { id: "demo", role: "ADMIN" } });
 });
 
 export default router;

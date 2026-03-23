@@ -1,7 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config } from "../config";
-import { User } from "@prisma/client";
+// import { User } from "@prisma/client"
+
+// Stub User type for demo
+type User = { id: string; email: string; role: string };
 
 type TokenPair = { accessToken: string; refreshToken: string };
 

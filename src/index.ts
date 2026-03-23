@@ -6,9 +6,10 @@ import { config } from "./config";
 import authRoutes from "./routes/auth";
 import issueRoutes from "./routes/issues";
 import transparencyRoutes from "./routes/transparency";
-import { prisma } from "./db";
+// import { prisma } from "./db";
 
 const app = express();
+const IS_VERCEL = process.env.VERCEL === "1";
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json({ limit: "2mb" }));
@@ -16,7 +17,7 @@ app.use(morgan("dev"));
 
 app.get("/health", async (_, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    // await prisma.$queryRaw`SELECT 1`;
     res.json({ status: "ok" });
   } catch (err) {
     res.status(500).json({ status: "error" });
@@ -27,8 +28,17 @@ app.use("/auth", authRoutes);
 app.use("/issues", issueRoutes);
 app.use("/transparency", transparencyRoutes);
 
-app.use((_, res) => res.status(404).json({ message: "Not found" }));
+app.use((req, res) =>
+  res.status(404).json({
+    message: "Route not found",
+    path: req.path,
+  }),
+);
 
-app.listen(config.port, () => {
-  console.log(`API running on http://localhost:${config.port}`);
-});
+if (!IS_VERCEL) {
+  app.listen(config.port, () => {
+    console.log(`API running on http://localhost:${config.port}`);
+  });
+}
+
+export default app;
