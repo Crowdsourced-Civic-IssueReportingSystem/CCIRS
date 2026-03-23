@@ -13,8 +13,9 @@ const links = [
 function Navbar() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const isLoggedIn = Boolean(user);
   const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
-  const baseLinks = isAdmin ? [] : links;
+  const baseLinks = isLoggedIn && !isAdmin ? links : [];
 
   const authLinks = user
     ? [
