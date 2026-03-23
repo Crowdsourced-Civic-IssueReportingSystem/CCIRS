@@ -75,6 +75,100 @@
   </div>
 
   <div id="appSection" class="d-none">
+    <section class="home-hero card mb-3" aria-labelledby="homeHeroTitle">
+      <div class="card-body">
+        <div class="home-hero-grid">
+          <div>
+            <p class="hero-kicker">Citizen-first civic response</p>
+            <h1 class="hero-title mb-2" id="homeHeroTitle">Report civic issues. Track action. Build public trust.</h1>
+            <p class="hero-subtitle mb-3">
+              CCIRS connects residents and city teams through transparent issue reporting, public timelines, and measurable resolution outcomes.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="#reportingRow" class="btn btn-primary">Report an Issue</a>
+              <a href="#recentIssuesTitle" class="btn btn-outline-primary">View Recent Issues</a>
+            </div>
+          </div>
+          <div class="hero-highlight" role="status" aria-live="polite">
+            <div class="highlight-pill">Public Dashboard • Live</div>
+            <p class="mb-1 fw-semibold">Transparent by design</p>
+            <p class="mb-0 small text-muted">Every issue stays visible from submission to closure with accountability checkpoints.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card mb-3" aria-labelledby="howItWorksTitle">
+      <div class="card-body">
+        <h4 class="mb-3" id="howItWorksTitle">How It Works</h4>
+        <div class="how-grid">
+          <article class="how-item">
+            <div class="how-icon-wrap">
+              <svg class="how-icon" aria-hidden="true"><use href="hero-icons.svg#icon-report"></use></svg>
+            </div>
+            <h5>1. Report</h5>
+            <p>Citizens submit issue details with location and evidence in under a minute.</p>
+          </article>
+          <article class="how-item">
+            <div class="how-icon-wrap">
+              <svg class="how-icon" aria-hidden="true"><use href="hero-icons.svg#icon-transparency"></use></svg>
+            </div>
+            <h5>2. Route & Track</h5>
+            <p>AI-assisted routing sends reports to the right department with live timeline updates.</p>
+          </article>
+          <article class="how-item">
+            <div class="how-icon-wrap">
+              <svg class="how-icon" aria-hidden="true"><use href="hero-icons.svg#icon-audit"></use></svg>
+            </div>
+            <h5>3. Resolve</h5>
+            <p>Progress and closure stay publicly visible, increasing accountability and trust.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust-strip card mb-3" aria-label="Trust signals">
+      <div class="card-body">
+        <div class="trust-grid">
+          <div class="trust-item">
+            <svg class="trust-icon" aria-hidden="true"><use href="hero-icons.svg#icon-trust"></use></svg>
+            <div>
+              <p class="mb-0 fw-semibold">Secure reporting</p>
+              <small class="text-muted">Consent-aware, privacy-conscious workflows</small>
+            </div>
+          </div>
+          <div class="trust-item">
+            <svg class="trust-icon" aria-hidden="true"><use href="hero-icons.svg#icon-transparency"></use></svg>
+            <div>
+              <p class="mb-0 fw-semibold">Public transparency</p>
+              <small class="text-muted">Track status and timeline events openly</small>
+            </div>
+          </div>
+          <div class="trust-item">
+            <svg class="trust-icon" aria-hidden="true"><use href="hero-icons.svg#icon-audit"></use></svg>
+            <div>
+              <p class="mb-0 fw-semibold">Audit-ready records</p>
+              <small class="text-muted">Clear accountability from report to closure</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card mb-4" aria-labelledby="featuredIssuesTitle">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+          <h4 class="mb-0" id="featuredIssuesTitle">Featured Issues</h4>
+          <small class="text-muted">Top upvoted public issues</small>
+        </div>
+        <div id="featuredIssuesGrid" class="featured-grid" aria-live="polite">
+          <div class="featured-skeleton"></div>
+          <div class="featured-skeleton"></div>
+          <div class="featured-skeleton"></div>
+        </div>
+      </div>
+    </section>
+
     <div id="juryStory" class="card mb-3 d-none">
       <div class="card-body">
         <h5 class="mb-2" id="juryStoryTitle">Why This Matters</h5>
@@ -373,53 +467,6 @@
       </div>
     </div>
 
-    <div class="card mt-3">
-      <div class="card-body">
-        <h4 class="mb-3">How CCIRS Works: End-to-End Mechanism</h4>
-        <p class="text-muted mb-3">
-          The Crowdsourced Civic Issue Reporting and Resolution System operates through a streamlined,
-          end-to-end process designed to connect citizens with the correct government authorities efficiently.
-        </p>
-
-        <div class="mb-3">
-          <h5 class="mb-2">1. Issue Reporting via User Interface</h5>
-          <p class="mb-2">The workflow begins when a citizen encounters a civic problem and accesses the platform, which is designed as a unified mobile and web application.</p>
-          <ul class="small mb-0">
-            <li><strong>Multimedia Inputs:</strong> Users can submit geotagged reports with photos, text, and voice notes.</li>
-            <li><strong>Precision Mapping:</strong> The exact issue location is captured using PostgreSQL with geospatial APIs for high-precision mapping.</li>
-            <li><strong>Accessible Design:</strong> A multilingual interface keeps reporting simple for non-tech users.</li>
-          </ul>
-        </div>
-
-        <div class="mb-3">
-          <h5 class="mb-2">2. Automated Processing and AI Routing</h5>
-          <p class="mb-2">After submission, the intelligent back end takes over and routes the issue automatically.</p>
-          <ul class="small mb-0">
-            <li><strong>AI Classification:</strong> An AI engine integrated with TensorFlow Lite classifies issues from submitted content.</li>
-            <li><strong>Department Allocation:</strong> Issues are auto-assigned to the correct government department without manual sorting.</li>
-          </ul>
-        </div>
-
-        <div class="mb-3">
-          <h5 class="mb-2">3. Immutable Record Keeping</h5>
-          <p class="mb-0">Each report is recorded on a blockchain ledger to provide tamper-proof status tracking and prevent unauthorized changes.</p>
-        </div>
-
-        <div class="mb-3">
-          <h5 class="mb-2">4. Real-Time Tracking and Transparency</h5>
-          <p class="mb-2">Citizens get continuous visibility as departments process the issue.</p>
-          <ul class="small mb-0">
-            <li><strong>Transparency Dashboard:</strong> Users can monitor live progress updates for their issue.</li>
-            <li><strong>End-to-End Visibility:</strong> Tracking covers the full lifecycle from submission to final resolution.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h5 class="mb-2">5. Final Resolution and Impact</h5>
-          <p class="mb-0">By combining easy frontend reporting with intelligent backend routing, CCIRS enables faster reporting, smarter resource allocation, and better civic outcomes for cleaner and greener communities.</p>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 

@@ -4,7 +4,7 @@
   "description": "Crowdsourced Civic Issue Reporting System API",
   "license": "MIT",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/indexFirebase.ts",
+    "dev": "ts-node --transpile-only src/indexFirebase.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/indexFirebase.js",
     "lint": "eslint . --ext .ts",

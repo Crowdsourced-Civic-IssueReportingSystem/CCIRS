@@ -1,3 +1,64 @@
+// Render featured issues (top 3 by voteCount) into #featuredIssuesGrid
+function renderFeaturedIssues(issues) {
+  const grid = document.getElementById('featuredIssuesGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!Array.isArray(issues) || issues.length === 0) {
+    grid.innerHTML = '<div class="featured-skeleton"></div><div class="featured-skeleton"></div><div class="featured-skeleton"></div>' +
+      '<div class="col-12 text-center text-muted mt-2">No featured issues yet.</div>';
+    return;
+  }
+  // Sort by voteCount descending, take top 3
+  const top = [...issues].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0)).slice(0, 3);
+  top.forEach(issue => {
+    grid.appendChild(featuredIssueCard(issue));
+  });
+  // Fill with skeletons if <3
+  for (let i = top.length; i < 3; ++i) {
+    const skel = document.createElement('div');
+    skel.className = 'featured-skeleton';
+    grid.appendChild(skel);
+  }
+}
+
+function featuredIssueCard(issue) {
+  const div = document.createElement('div');
+  div.className = 'featured-item';
+  div.innerHTML = `
+    <div class="featured-title">${escapeHtml(issue.title || 'Untitled')}</div>
+    <div class="featured-meta">
+      <span class="featured-pill">${escapeHtml(issue.status || 'Unknown')}</span>
+      <span class="featured-pill">${escapeHtml(issue.department || 'General')}</span>
+      <span class="featured-pill" title="Upvotes">
+        <svg width="16" height="16" style="vertical-align:middle;fill:#0b63f6;"><use href="hero-icons.svg#icon-report"></use></svg>
+        ${Number(issue.voteCount) || 0}
+      </span>
+    </div>
+    <div class="featured-desc">${escapeHtml(issue.description || '')}</div>
+    <div class="featured-footer">
+      <span>${relativeTime(issue.updatedAt || issue.createdAt)}</span>
+    </div>
+  `;
+  return div;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, function (c) {
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+  });
+}
+
+function relativeTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + ' min ago';
+  if (diff < 86400) return Math.floor(diff/3600) + ' hr ago';
+  if (diff < 2592000) return Math.floor(diff/86400) + 'd ago';
+  return d.toLocaleDateString();
+}
 const API_BASE_URL = "/api";
 let lightboxPhotos = [];
 let lightboxIndex = 0;
@@ -559,6 +620,7 @@ async function loadDashboard(silent = false) {
     renderStats(stats);
     renderKpis(issues);
     renderIssues(issues);
+    renderFeaturedIssues(issues);
     setIssuesEmptyState(!Array.isArray(issues) || issues.length === 0);
     renderTransparencyFeed(feed);
     detectStatusChanges(feed);
@@ -566,10 +628,53 @@ async function loadDashboard(silent = false) {
   } catch (error) {
     setApiStatus("API unavailable", "text-danger");
     showIssuesError(error.message || "Unable to load dashboard data");
+    renderFeaturedIssues([]);
     announce("Failed to load dashboard data.");
   } finally {
     setIssuesLoading(false);
   }
+}
+
+function renderFeaturedIssues(issues) {
+  const grid = document.getElementById("featuredIssuesGrid");
+  if (!grid) return;
+
+  const list = Array.isArray(issues) ? [...issues] : [];
+  if (!list.length) {
+    grid.innerHTML = '<div class="text-muted small">No featured issues available yet.</div>';
+    return;
+  }
+
+  const top = list
+    .sort((a, b) => (Number(b.voteCount) || 0) - (Number(a.voteCount) || 0))
+    .slice(0, 3);
+
+  grid.innerHTML = top
+    .map((issue) => {
+      const title = escapeHtml(issue.title || "Untitled issue");
+      const description = escapeHtml(issue.description || "");
+      const trimmedDescription = description.length > 128 ? `${description.slice(0, 125)}...` : description;
+      const status = escapeHtml(issue.status || "OPEN");
+      const department = escapeHtml(issue.department || "Unassigned");
+      const votes = Number(issue.voteCount) || 0;
+      const updated = formatRelativeTime(issue.updatedAt || issue.createdAt);
+
+      return `
+        <article class="featured-item" aria-label="Featured issue ${title}">
+          <h5 class="featured-title">${title}</h5>
+          <div class="featured-meta">
+            <span class="featured-pill">${department}</span>
+            <span class="featured-pill bg-${getStatusColor(issue.status)} text-white border-0">${status}</span>
+          </div>
+          <p class="featured-desc">${trimmedDescription}</p>
+          <div class="featured-footer">
+            <span>👍 ${votes} upvotes</span>
+            <span>${escapeHtml(updated)}</span>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 async function handleSubmitIssue(e) {
