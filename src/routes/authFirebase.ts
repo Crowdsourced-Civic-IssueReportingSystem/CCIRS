@@ -7,10 +7,12 @@
  */
 
 import { Router, Request, Response } from "express";
+import bcrypt from "bcryptjs";
 import { requireFirebaseAuth } from "../middleware/firebaseAuth";
 import { updateDoc, getDoc, createDoc, queryDocs } from "../services/firestoreApi";
 
 const router = Router();
+const PASSWORD_SALT_ROUNDS = 10;
 const ENABLE_LOCAL_AUTH =
   process.env.FIREBASE_ENABLE_LOCAL_AUTH === "1" ||
   (process.env.NODE_ENV ?? "development") !== "production";
@@ -42,6 +44,21 @@ const createDevToken = (payload: { uid: string; email?: string; name?: string })
   return `dev.${Buffer.from(JSON.stringify(body)).toString("base64url")}.sig`;
 };
 
+const hasPasswordHash = (user: any): boolean => {
+  return typeof user?.passwordHash === "string" && user.passwordHash.length > 0;
+};
+
+const verifyStoredPassword = async (user: any, plainPassword: string): Promise<boolean> => {
+  if (hasPasswordHash(user)) {
+    return bcrypt.compare(plainPassword, user.passwordHash);
+  }
+  return typeof user?.password === "string" && user.password === plainPassword;
+};
+
+const hashPassword = async (plainPassword: string): Promise<string> => {
+  return bcrypt.hash(plainPassword, PASSWORD_SALT_ROUNDS);
+};
+
 /**
  * POST /auth/register
  * Local register endpoint for development/demo mode
@@ -59,13 +76,15 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     const docId = userDocIdFromEmail(email);
+    const passwordHash = await hashPassword(password);
     const existing = await getDoc("users", docId);
     if (existing) {
       const updatedUser = {
         ...existing,
         email,
         name: name || existing.name || "Citizen",
-        password,
+        passwordHash,
+        password: null,
         role: resolveRole(email, existing.role),
         updatedAt: new Date().toISOString(),
       };
@@ -93,7 +112,8 @@ router.post("/register", async (req: Request, res: Response) => {
       uid,
       email,
       name: name || "Citizen",
-      password,
+      passwordHash,
+      password: null,
       role: resolveRole(email),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -138,8 +158,17 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const docId = userDocIdFromEmail(email);
     const user = await getDoc("users", docId);
-    if (!user || user.password !== password) {
+    if (!user || !(await verifyStoredPassword(user, password))) {
       return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    if (!hasPasswordHash(user)) {
+      const passwordHash = await hashPassword(password);
+      await updateDoc("users", docId, {
+        passwordHash,
+        password: null,
+        updatedAt: new Date().toISOString(),
+      });
     }
 
     const token = createDevToken({ uid: user.uid, email: user.email, name: user.name });

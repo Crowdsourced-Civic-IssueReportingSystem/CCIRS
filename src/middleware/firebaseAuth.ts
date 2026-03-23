@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { config } from "../config";
 
 interface FirebaseLookupUser {
   localId: string;
@@ -59,7 +60,7 @@ export const requireFirebaseAuth = async (
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
-  const strictMode = process.env.FIREBASE_AUTH_STRICT === "1";
+  const strictMode = config.auth.firebaseStrictMode;
   const header = req.headers.authorization ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
 

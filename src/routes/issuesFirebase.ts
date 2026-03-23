@@ -9,16 +9,27 @@ import {
   createDoc,
   getDoc,
   updateDoc,
-  deleteDoc,
   deleteSubDoc,
   listDocs,
   createSubDoc,
   listSubDocs,
+  queryDocs,
 } from "../services/firestoreApi";
 import { classifyIssue } from "../services/aiRouter";
-import { appendLedgerEvent, verifyLedger } from "../services/ledger";
+import { appendLedgerEvent } from "../services/ledger";
 
 const router = Router();
+const MODERATION_ROLES = new Set(["ADMIN", "MODERATOR"]);
+
+const getUserRoleByUid = async (uid: string): Promise<string | null> => {
+  const byId = await getDoc("users", uid);
+  if (byId?.role) return String(byId.role).toUpperCase();
+
+  const matches = await queryDocs("users", "uid", "EQUAL", uid);
+  const role = matches?.[0]?.role;
+  if (!role) return null;
+  return String(role).toUpperCase();
+};
 
 /**
  * POST /issues
@@ -53,10 +64,12 @@ router.post("/", requireFirebaseAuth, async (req: Request, res: Response) => {
       description,
       createdBy: uid,
       status: "OPEN",
-      severity: priority || "MEDIUM",
+      severity: priority || aiResult.predictedPriority || "MEDIUM",
       category: aiResult.category,
       department: aiResult.department,
       aiConfidence: aiResult.confidence,
+      aiModel: aiResult.model,
+      aiPriority: aiResult.predictedPriority,
       latitude: latitude || null,
       longitude: longitude || null,
       address: address || "",
@@ -155,8 +168,15 @@ router.patch("/:id/status", requireFirebaseAuth, async (req: Request, res: Respo
       return res.status(400).json({ error: "Status required" });
     }
 
-    // Check moderator role (simplified - in production, fetch user doc)
-    // For now, assume any authenticated user can update
+    if (!uid) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const actorRole = await getUserRoleByUid(uid);
+    if (!actorRole || !MODERATION_ROLES.has(actorRole)) {
+      return res.status(403).json({ error: "Moderator or admin role required" });
+    }
+
     const issue = await getDoc("issues", id);
     if (!issue) {
       return res.status(404).json({ error: "Issue not found" });

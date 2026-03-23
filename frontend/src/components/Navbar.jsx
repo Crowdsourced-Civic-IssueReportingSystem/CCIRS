@@ -8,20 +8,16 @@ const links = [
   { to: "/report", label: "Report Issue" },
   { to: "/track", label: "Track" },
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/admin", label: "Transparency" },
 ];
 
 function Navbar() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
-  const isLoggedIn = Boolean(user);
-  const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
-  const baseLinks = isLoggedIn && !isAdmin ? links : [];
+  const baseLinks = links;
 
   const authLinks = user
-    ? [
-        ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
-        { to: "/profile", label: "Profile" },
-      ]
+    ? [{ to: "/profile", label: "Profile" }]
     : [
         { to: "/login", label: "Login" },
         { to: "/register", label: "Register" },

@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from "express";
 import { getDoc, listSubDocs, listDocs } from "../services/firestoreApi";
+import { verifyLedgerDetailed } from "../services/ledger";
 
 const router = Router();
 
@@ -61,6 +62,8 @@ router.get("/issues/:id/timeline", async (req: Request, res: Response) => {
       })),
     ];
 
+    const integrity = await verifyLedgerDetailed(id);
+
     res.json({
       issue: {
         id: issue.id,
@@ -82,6 +85,7 @@ router.get("/issues/:id/timeline", async (req: Request, res: Response) => {
       },
       timeline,
       integrityCheckEnabled: ledger.length > 0,
+      integrity,
     });
   } catch (error) {
     console.error("GET /transparency/:id/timeline error:", error);

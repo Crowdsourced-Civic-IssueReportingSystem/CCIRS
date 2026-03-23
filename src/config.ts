@@ -25,4 +25,19 @@ export const config = {
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? "15m",
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "30d",
   },
+  auth: {
+    firebaseStrictMode:
+      typeof process.env.FIREBASE_AUTH_STRICT === "string"
+        ? process.env.FIREBASE_AUTH_STRICT === "1"
+        : (process.env.NODE_ENV ?? "development") !== "development",
+  },
+  ai: {
+    classifierEndpoint: process.env.ML_CLASSIFIER_ENDPOINT ?? "",
+    classifierApiKey: process.env.ML_CLASSIFIER_API_KEY ?? "",
+  },
+  ledger: {
+    anchorEndpoint: process.env.LEDGER_ANCHOR_ENDPOINT ?? "",
+    anchorApiKey: process.env.LEDGER_ANCHOR_API_KEY ?? "",
+    anchorTimeoutMs: Number(process.env.LEDGER_ANCHOR_TIMEOUT_MS ?? 8000),
+  },
 };

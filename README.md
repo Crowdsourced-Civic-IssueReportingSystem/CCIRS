@@ -118,6 +118,12 @@ cp .env.example .env
 - `DATABASE_URL` — PostgreSQL connection string
 - `FIREBASE_SERVICE_ACCOUNT_JSON` — full service account JSON (optional strategy A)
 - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` — discrete Firebase credentials (optional strategy B)
+- `FIREBASE_AUTH_STRICT` — set `1` for strict Firebase token validation (defaults strict outside development)
+- `ML_CLASSIFIER_ENDPOINT` — optional external ML inference endpoint for issue classification
+- `ML_CLASSIFIER_API_KEY` — optional bearer token for ML inference endpoint
+- `LEDGER_ANCHOR_ENDPOINT` — optional external blockchain-relayer endpoint to anchor ledger hashes
+- `LEDGER_ANCHOR_API_KEY` — optional bearer token for anchor endpoint
+- `LEDGER_ANCHOR_TIMEOUT_MS` — timeout in milliseconds for anchor requests (default: 8000)
 - `PORT` — Server port (default: 3000)
 - `CORS_ORIGIN` — Frontend origin URL
 
@@ -292,3 +298,4 @@ CCIRS/
 - Transparency route verifies hash-chain integrity for every issue timeline.
 - Rate limiting can be added with `express-rate-limit` for production hardening.
 - Logging: Morgan request logging is enabled.
+

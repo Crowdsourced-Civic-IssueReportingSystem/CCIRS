@@ -1,0 +1,13 @@
+CCIRS upgrade tasks (phase 1 output)
+
+1) Read and approve UPGRADE_AUDIT_AND_PLAN.md
+2) Execute Security patch PR:
+   - role enforcement on PATCH /issues/:id/status
+   - strict token verification default outside dev
+   - bcrypt hash for local auth passwords
+3) Execute Repo clarity PR:
+   - mark active runtime paths
+   - add LEGACY.md for deprecated files
+4) Execute Tooling PR:
+   - frontend ESLint + Prettier + scripts
+   - CI workflows for frontend/backend lint/test/build
