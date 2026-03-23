@@ -3,6 +3,8 @@
  * Express.js app with Firebase Auth and Firestore database
  */
 
+import "dotenv/config";
+import { sanitizeProxyEnv } from "./proxyEnvGuard";
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -16,6 +18,8 @@ import transparencyRoutes from "./routes/transparencyFirebase";
 const app: Express = express();
 const PORT = process.env.PORT || 3003;
 const IS_VERCEL = process.env.VERCEL === "1";
+
+sanitizeProxyEnv();
 
 // Middleware
 app.use(helmet());

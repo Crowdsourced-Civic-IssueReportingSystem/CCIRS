@@ -1,17 +1,30 @@
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const links = [
   { to: "/", label: "Home" },
   { to: "/report", label: "Report Issue" },
   { to: "/track", label: "Track" },
   { to: "/dashboard", label: "Dashboard" },
-  { to: "/profile", label: "Profile" },
 ];
 
 function Navbar() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
+  const baseLinks = isAdmin ? [] : links;
+
+  const authLinks = user
+    ? [
+        ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
+        { to: "/profile", label: "Profile" },
+      ]
+    : [
+        { to: "/login", label: "Login" },
+        { to: "/register", label: "Register" },
+      ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -21,7 +34,7 @@ function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {links.map((link) => (
+          {[...baseLinks, ...authLinks].map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -46,7 +59,7 @@ function Navbar() {
       {open && (
         <nav className="border-t border-slate-200 bg-white px-4 py-2 md:hidden">
           <div className="flex flex-col gap-1">
-            {links.map((link) => (
+            {[...baseLinks, ...authLinks].map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}

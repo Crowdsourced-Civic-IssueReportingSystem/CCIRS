@@ -138,9 +138,9 @@ export function IssuesProvider({ children }) {
     try {
       let data = [];
       try {
-        data = await fetchPublicIssues(100);
-      } catch {
         data = await fetchIssues();
+      } catch {
+        data = await fetchPublicIssues(100);
       }
       setIssues(data.map(normalizeIssue));
     } catch (err) {

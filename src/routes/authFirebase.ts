@@ -8,10 +8,24 @@
 
 import { Router, Request, Response } from "express";
 import { requireFirebaseAuth } from "../middleware/firebaseAuth";
-import { updateDoc, getDoc, createDoc } from "../services/firestoreApi";
+import { updateDoc, getDoc, createDoc, queryDocs } from "../services/firestoreApi";
 
 const router = Router();
-const ENABLE_LOCAL_AUTH = process.env.NODE_ENV !== "production";
+const ENABLE_LOCAL_AUTH =
+  process.env.FIREBASE_ENABLE_LOCAL_AUTH === "1" ||
+  (process.env.NODE_ENV ?? "development") !== "production";
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+const resolveRole = (email?: string, existingRole?: string): string => {
+  if (existingRole) return existingRole;
+  if (email && ADMIN_EMAILS.has(email.toLowerCase())) return "ADMIN";
+  return "CITIZEN";
+};
 
 const userDocIdFromEmail = (email: string): string => {
   return `user_${Buffer.from(email.toLowerCase()).toString("base64url")}`;
@@ -52,7 +66,7 @@ router.post("/register", async (req: Request, res: Response) => {
         email,
         name: name || existing.name || "Citizen",
         password,
-        role: existing.role || "CITIZEN",
+        role: resolveRole(email, existing.role),
         updatedAt: new Date().toISOString(),
       };
 
@@ -80,7 +94,7 @@ router.post("/register", async (req: Request, res: Response) => {
       email,
       name: name || "Citizen",
       password,
-      role: "CITIZEN",
+      role: resolveRole(email),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -135,7 +149,7 @@ router.post("/login", async (req: Request, res: Response) => {
         uid: user.uid,
         email: user.email,
         name: user.name,
-        role: user.role || "CITIZEN",
+        role: resolveRole(user.email, user.role),
       },
       tokens: {
         accessToken: token,
@@ -158,7 +172,12 @@ router.get("/me", requireFirebaseAuth, async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    const userDoc = await getDoc("users", uid);
+    let userDoc = await getDoc("users", uid);
+    if (!userDoc) {
+      const matches = await queryDocs("users", "uid", "EQUAL", uid);
+      userDoc = matches[0] || null;
+    }
+
     if (!userDoc) {
       return res.status(404).json({ error: "User profile not found" });
     }
@@ -191,7 +210,7 @@ router.post("/sync", requireFirebaseAuth, async (req: Request, res: Response) =>
       uid: authUser.uid,
       email,
       name: name || "",
-      role: existing?.role || "CITIZEN", // Preserve existing role
+      role: resolveRole(email, existing?.role), // Preserve existing role
       firebaseUid: authUser.uid,
       createdAt: existing?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),

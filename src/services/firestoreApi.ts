@@ -1,31 +1,11 @@
-/**
- * Firestore REST API Service
- * Uses REST calls instead of SDK to avoid npm install issues
- * Works with Firebase Cloud Functions seamlessly
- */
+import admin from "firebase-admin";
 
-const fetchFn: typeof fetch = (...args) => fetch(...args);
-
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "crowdsourced-civic-issue-1f5fe";
-const USE_LOCAL_STORE = process.env.NODE_ENV !== "production";
-
-interface Document {
-  name: string;
-  fields: any;
-  createTime?: string;
-  updateTime?: string;
-}
-
-interface QueryResult {
-  documents?: Document[];
-  message?: string;
-}
-
-const REST_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)`;
+const USE_LOCAL_STORE = process.env.FIREBASE_USE_LOCAL_STORE === "1";
 
 const localCollections = new Map<string, Map<string, any>>();
 const localSubCollections = new Map<string, Map<string, any>>();
 let localSeeded = false;
+let cachedDb: FirebaseFirestore.Firestore | null = null;
 
 function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -65,71 +45,101 @@ function ensureLocalSeeded(): void {
   localSeeded = true;
 }
 
-/**
- * Parse Firestore document to plain object
- */
-function parseDoc(doc: Document): any {
-  if (!doc.fields) return null;
+function normalizeValue(value: any): any {
+  if (value === null || value === undefined) return value;
 
-  const obj: any = {};
-  for (const [key, field] of Object.entries(doc.fields)) {
-    obj[key] = parseField(field);
+  if (value instanceof Date) {
+    return value.toISOString();
   }
 
-  return obj;
-}
+  if (typeof value === "object" && typeof value.toDate === "function") {
+    return value.toDate().toISOString();
+  }
 
-/**
- * Parse Firestore field value
- */
-function parseField(field: any): any {
-  if (field.stringValue) return field.stringValue;
-  if (field.integerValue) return parseInt(field.integerValue);
-  if (field.doubleValue) return field.doubleValue;
-  if (field.booleanValue) return field.booleanValue;
-  if (field.timestampValue) return new Date(field.timestampValue);
-  if (field.nullValue) return null;
-  if (field.arrayValue) {
-    return (field.arrayValue.values || []).map((v: any) => parseField(v));
-  }
-  if (field.mapValue) {
-    return parseDoc({ fields: field.mapValue.fields } as Document);
-  }
-  return null;
-}
-
-/**
- * Convert value to Firestore field format
- */
-function toField(value: any): any {
-  if (value === null || value === undefined) return { nullValue: null };
-  if (typeof value === "string") return { stringValue: value };
-  if (typeof value === "number") {
-    if (Number.isInteger(value)) return { integerValue: value.toString() };
-    return { doubleValue: value };
-  }
-  if (typeof value === "boolean") return { booleanValue: value };
-  if (value instanceof Date) return { timestampValue: value.toISOString() };
   if (Array.isArray(value)) {
-    return { arrayValue: { values: value.map(toField) } };
+    return value.map((item) => normalizeValue(item));
   }
+
   if (typeof value === "object") {
-    const fields: any = {};
+    const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
-      fields[k] = toField(v);
+      result[k] = normalizeValue(v);
     }
-    return { mapValue: { fields } };
+    return result;
   }
-  return { stringValue: String(value) };
+
+  return value;
 }
 
-/**
- * Create a document in Firestore
- */
+function normalizeDoc(
+  snap: FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData>,
+): any {
+  const data = snap.data();
+  if (!data) return null;
+
+  return {
+    id: snap.id,
+    ...normalizeValue(data),
+  };
+}
+
+function getFirestore(): FirebaseFirestore.Firestore {
+  if (cachedDb) return cachedDb;
+
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+  if (!admin.apps.length) {
+    let app: admin.app.App | null = null;
+    let initialized = false;
+
+    if (serviceAccountJson) {
+      try {
+        const parsed = JSON.parse(serviceAccountJson) as admin.ServiceAccount;
+        app = admin.initializeApp({
+          credential: admin.credential.cert(parsed),
+          projectId: parsed.projectId || projectId,
+        });
+        initialized = true;
+      } catch (error) {
+        console.warn(
+          `Ignoring invalid FIREBASE_SERVICE_ACCOUNT_JSON; falling back to discrete credentials. ${String(error)}`,
+        );
+      }
+    }
+
+    if (!initialized && projectId && clientEmail && privateKey) {
+      app = admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
+        projectId,
+      });
+      initialized = true;
+    }
+
+    if (!initialized || !app) {
+      app = admin.initializeApp({
+        projectId,
+      });
+    }
+
+    cachedDb = app.firestore();
+  } else {
+    cachedDb = admin.app().firestore();
+  }
+
+  return cachedDb;
+}
+
 export async function createDoc(
   collection: string,
   docId: string,
-  data: any
+  data: any,
 ): Promise<any> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
@@ -143,38 +153,11 @@ export async function createDoc(
     return cloneValue(doc);
   }
 
-  const url = `${REST_BASE}/documents/${collection}/${docId}`;
-  const fields = Object.entries(data).reduce((acc: any, [k, v]) => {
-    acc[k] = toField(v);
-    return acc;
-  }, {});
-
-  try {
-    const response = await fetchFn(url, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fields,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-
-    const result = (await response.json()) as Document;
-    return parseDoc(result);
-  } catch (error) {
-    console.error("createDoc error:", error);
-    throw error;
-  }
+  const db = getFirestore();
+  await db.collection(collection).doc(docId).set(data, { merge: true });
+  return getDoc(collection, docId);
 }
 
-/**
- * Get a document from Firestore
- */
 export async function getDoc(collection: string, docId: string): Promise<any> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
@@ -183,36 +166,16 @@ export async function getDoc(collection: string, docId: string): Promise<any> {
     return doc ? cloneValue(doc) : null;
   }
 
-  const url = `${REST_BASE}/documents/${collection}/${docId}`;
-
-  try {
-    const response = await fetchFn(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (response.status === 404) return null;
-    if (!response.ok) {
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-
-    const doc = (await response.json()) as Document;
-    return parseDoc(doc);
-  } catch (error) {
-    console.error("getDoc error:", error);
-    throw error;
-  }
+  const db = getFirestore();
+  const snap = await db.collection(collection).doc(docId).get();
+  if (!snap.exists) return null;
+  return normalizeDoc(snap);
 }
 
-/**
- * Update a document in Firestore
- */
 export async function updateDoc(
   collection: string,
   docId: string,
-  data: any
+  data: any,
 ): Promise<any> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
@@ -228,42 +191,12 @@ export async function updateDoc(
     return cloneValue(merged);
   }
 
-  const url = `${REST_BASE}/documents/${collection}/${docId}`;
-  const fields = Object.entries(data).reduce((acc: any, [k, v]) => {
-    acc[k] = toField(v);
-    return acc;
-  }, {});
-
-  try {
-    const response = await fetchFn(url, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fields,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-
-    const result = (await response.json()) as Document;
-    return parseDoc(result);
-  } catch (error) {
-    console.error("updateDoc error:", error);
-    throw error;
-  }
+  const db = getFirestore();
+  await db.collection(collection).doc(docId).set(data, { merge: true });
+  return getDoc(collection, docId);
 }
 
-/**
- * Delete a document from Firestore
- */
-export async function deleteDoc(
-  collection: string,
-  docId: string
-): Promise<void> {
+export async function deleteDoc(collection: string, docId: string): Promise<void> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
     const store = getCollectionStore(collection);
@@ -278,33 +211,15 @@ export async function deleteDoc(
     return;
   }
 
-  const url = `${REST_BASE}/documents/${collection}/${docId}`;
-
-  try {
-    const response = await fetchFn(url, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok && response.status !== 404) {
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-  } catch (error) {
-    console.error("deleteDoc error:", error);
-    throw error;
-  }
+  const db = getFirestore();
+  await db.collection(collection).doc(docId).delete();
 }
 
-/**
- * Delete a subcollection document
- */
 export async function deleteSubDoc(
   collection: string,
   docId: string,
   subCollection: string,
-  subDocId: string
+  subDocId: string,
 ): Promise<void> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
@@ -313,88 +228,50 @@ export async function deleteSubDoc(
     return;
   }
 
-  const url = `${REST_BASE}/documents/${collection}/${docId}/${subCollection}/${subDocId}`;
-
-  try {
-    const response = await fetchFn(url, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok && response.status !== 404) {
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-  } catch (error) {
-    console.error("deleteSubDoc error:", error);
-    throw error;
-  }
+  const db = getFirestore();
+  await db.collection(collection).doc(docId).collection(subCollection).doc(subDocId).delete();
 }
 
-/**
- * Query documents from Firestore
- */
+function normalizeOperator(operator: string): FirebaseFirestore.WhereFilterOp {
+  const op = operator.toUpperCase();
+  if (op === "EQUAL" || op === "EQUALS" || operator === "==") return "==";
+  if (operator === "!=") return "!=";
+  if (operator === "<") return "<";
+  if (operator === "<=") return "<=";
+  if (operator === ">") return ">";
+  if (operator === ">=") return ">=";
+  if (op === "ARRAY_CONTAINS") return "array-contains";
+  if (op === "IN") return "in";
+  if (op === "NOT_IN") return "not-in";
+  return "==";
+}
+
 export async function queryDocs(
   collection: string,
   field: string,
   operator: string,
-  value: any
+  value: any,
 ): Promise<any[]> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
     const store = getCollectionStore(collection);
     const allDocs = Array.from(store.values());
+    const whereOp = normalizeOperator(operator);
 
-    const isEqualOp = operator === "EQUAL" || operator === "==" || operator === "EQUALS";
-    if (!isEqualOp) {
+    if (whereOp !== "==") {
       return [];
     }
 
     return allDocs.filter((doc) => doc[field] === value).map((doc) => cloneValue(doc));
   }
 
-  const url = `${REST_BASE}/documents:query`;
-
-  try {
-    const response = await fetchFn(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        structuredQuery: {
-          from: [{ collectionId: collection }],
-          where: {
-            fieldFilter: {
-              field: { fieldPath: field },
-              op: operator,
-              value: toField(value),
-            },
-          },
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-
-    const result = (await response.json()) as QueryResult;
-    return (result.documents || []).map(parseDoc);
-  } catch (error) {
-    console.error("queryDocs error:", error);
-    throw error;
-  }
+  const db = getFirestore();
+  const whereOp = normalizeOperator(operator);
+  const snap = await db.collection(collection).where(field, whereOp, value).get();
+  return snap.docs.map((doc) => normalizeDoc(doc)).filter(Boolean);
 }
 
-/**
- * List all documents in a collection
- */
-export async function listDocs(
-  collection: string,
-  pageSize: number = 100
-): Promise<any[]> {
+export async function listDocs(collection: string, pageSize: number = 100): Promise<any[]> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
     const store = getCollectionStore(collection);
@@ -403,40 +280,11 @@ export async function listDocs(
       .map((doc) => cloneValue(doc));
   }
 
-  const url = `${REST_BASE}/documents/${collection}?pageSize=${pageSize}`;
-
-  try {
-    const response = await fetchFn(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      // In dev mode, return mock data for 403 Forbidden (auth required)
-      if (response.status === 403 && process.env.NODE_ENV !== "production") {
-        console.warn(`Firestore auth not available in dev mode, returning mock data for ${collection}`);
-        return getMockData(collection);
-      }
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-
-    const result = (await response.json()) as QueryResult;
-    return (result.documents || []).map(parseDoc);
-  } catch (error) {
-    console.error("listDocs error:", error);
-    // Return mock data as fallback
-    if (process.env.NODE_ENV !== "production") {
-      return getMockData(collection);
-    }
-    throw error;
-  }
+  const db = getFirestore();
+  const snap = await db.collection(collection).limit(pageSize).get();
+  return snap.docs.map((doc) => normalizeDoc(doc)).filter(Boolean);
 }
 
-/**
- * Get mock data for development/testing
- */
 function getMockData(collection: string): any[] {
   if (collection === "issues") {
     return [
@@ -450,7 +298,7 @@ function getMockData(collection: string): any[] {
         department: "Public Works",
         aiConfidence: 0.95,
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: "Main St & 5th Ave",
         voteCount: 12,
         commentCount: 3,
@@ -467,8 +315,8 @@ function getMockData(collection: string): any[] {
         category: "lighting",
         department: "Parks & Recreation",
         aiConfidence: 0.87,
-        latitude: 40.7150,
-        longitude: -74.0080,
+        latitude: 40.715,
+        longitude: -74.008,
         address: "Park Ave & 10th St",
         voteCount: 8,
         commentCount: 2,
@@ -485,8 +333,8 @@ function getMockData(collection: string): any[] {
         category: "sanitation",
         department: "Waste Management",
         aiConfidence: 0.92,
-        latitude: 40.7200,
-        longitude: -74.0100,
+        latitude: 40.72,
+        longitude: -74.01,
         address: "Zone B Downtown",
         voteCount: 5,
         commentCount: 1,
@@ -499,15 +347,12 @@ function getMockData(collection: string): any[] {
   return [];
 }
 
-/**
- * Create a subcollection document
- */
 export async function createSubDoc(
   collection: string,
   docId: string,
   subCollection: string,
   subDocId: string,
-  data: any
+  data: any,
 ): Promise<any> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
@@ -520,42 +365,17 @@ export async function createSubDoc(
     return cloneValue(doc);
   }
 
-  const url = `${REST_BASE}/documents/${collection}/${docId}/${subCollection}/${subDocId}`;
-  const fields = Object.entries(data).reduce((acc: any, [k, v]) => {
-    acc[k] = toField(v);
-    return acc;
-  }, {});
-
-  try {
-    const response = await fetchFn(url, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fields,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-
-    const result = (await response.json()) as Document;
-    return parseDoc(result);
-  } catch (error) {
-    console.error("createSubDoc error:", error);
-    throw error;
-  }
+  const db = getFirestore();
+  const ref = db.collection(collection).doc(docId).collection(subCollection).doc(subDocId);
+  await ref.set(data, { merge: true });
+  const snap = await ref.get();
+  return normalizeDoc(snap);
 }
 
-/**
- * List subcollection documents
- */
 export async function listSubDocs(
   collection: string,
   docId: string,
-  subCollection: string
+  subCollection: string,
 ): Promise<any[]> {
   if (USE_LOCAL_STORE) {
     ensureLocalSeeded();
@@ -563,24 +383,7 @@ export async function listSubDocs(
     return Array.from(store.values()).map((doc) => cloneValue(doc));
   }
 
-  const url = `${REST_BASE}/documents/${collection}/${docId}/${subCollection}?pageSize=100`;
-
-  try {
-    const response = await fetchFn(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Firestore error: ${response.statusText}`);
-    }
-
-    const result = (await response.json()) as QueryResult;
-    return (result.documents || []).map(parseDoc);
-  } catch (error) {
-    console.error("listSubDocs error:", error);
-    throw error;
-  }
+  const db = getFirestore();
+  const snap = await db.collection(collection).doc(docId).collection(subCollection).limit(100).get();
+  return snap.docs.map((doc) => normalizeDoc(doc)).filter(Boolean);
 }

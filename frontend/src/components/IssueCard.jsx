@@ -4,13 +4,24 @@ import { formatDate } from "../utils/formatDate";
 import StatusBadge from "./StatusBadge";
 
 function IssueCard({ issue }) {
+  const imageSrc = typeof issue.image === "string" ? issue.image.trim() : "";
+
   return (
     <Link
       to={`/track?issueId=${encodeURIComponent(issue.id)}`}
       className="panel block overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       aria-label={`Open tracking details for ${issue.id}`}
     >
-      {issue.image ? <img src={issue.image} alt={issue.title} className="h-36 w-full object-cover" /> : null}
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={issue.title}
+          className="h-36 w-full object-cover"
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
+        />
+      ) : null}
       <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <h3 className="line-clamp-2 text-sm font-semibold text-slate-900">{issue.title}</h3>

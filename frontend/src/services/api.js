@@ -58,3 +58,38 @@ export function fetchIssueById(issueId) {
 export function fetchIssueTimeline(issueId) {
   return request(`/transparency/issues/${issueId}/timeline`);
 }
+
+export function loginUser(payload) {
+  return request("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function registerUser(payload) {
+  return request("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function logoutUser() {
+  return request("/auth/logout", {
+    method: "POST",
+  });
+}
+
+export function fetchCurrentUser() {
+  return request("/auth/me");
+}
+
+export function updateIssueStatus(issueId, status) {
+  return request(`/issues/${issueId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function fetchTransparencyStats() {
+  return request("/transparency/stats");
+}

@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 
 function Profile() {
-  const { user, updateProfile, logout, loginMock } = useAuth();
+  const navigate = useNavigate();
+  const { user, updateProfile, logout } = useAuth();
   const { showToast } = useToast();
   const [form, setForm] = useState({
     name: user?.name || "",
@@ -19,10 +21,23 @@ function Profile() {
   };
 
   const onLogout = () => {
-    logout();
-    showToast("Logged out", "warning");
-    setTimeout(() => loginMock(), 1200);
+    logout().finally(() => {
+      showToast("Logged out", "warning");
+      navigate("/login");
+    });
   };
+
+  if (!user) {
+    return (
+      <div className="panel mx-auto max-w-2xl p-6">
+        <h1 className="text-2xl font-bold">Profile</h1>
+        <p className="mt-2 text-sm text-slate-600">You are not logged in.</p>
+        <button type="button" className="btn-primary mt-4" onClick={() => navigate("/login")}>
+          Go to Login
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

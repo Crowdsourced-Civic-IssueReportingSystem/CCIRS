@@ -112,6 +112,8 @@ router.get("/issues", async (req: Request, res: Response) => {
       voteCount: issue.voteCount || 0,
       commentCount: issue.commentCount || 0,
       photoCount: Array.isArray(issue.photoUrls) ? issue.photoUrls.length : 0,
+      photoUrls: Array.isArray(issue.photoUrls) ? issue.photoUrls : [],
+      image: Array.isArray(issue.photoUrls) && issue.photoUrls.length > 0 ? issue.photoUrls[0] : "",
       hasVoiceNote: Boolean(issue.voiceNoteUrl),
       createdAt: issue.createdAt,
       updatedAt: issue.updatedAt,

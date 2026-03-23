@@ -7,6 +7,15 @@ import { categories } from "../utils/dummyData";
 import { useIssues } from "../context/IssuesContext";
 import { useToast } from "../context/ToastContext";
 
+function toDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read image file"));
+    reader.readAsDataURL(file);
+  });
+}
+
 function ReportIssue() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -77,10 +86,14 @@ function ReportIssue() {
     }
   };
 
-  const onFileChange = (file) => {
-    const preview = URL.createObjectURL(file);
-    setForm((prev) => ({ ...prev, imageFile: file, imagePreview: preview }));
-    setErrors((prev) => ({ ...prev, imageFile: "" }));
+  const onFileChange = async (file) => {
+    try {
+      const preview = await toDataUrl(file);
+      setForm((prev) => ({ ...prev, imageFile: file, imagePreview: preview }));
+      setErrors((prev) => ({ ...prev, imageFile: "" }));
+    } catch (error) {
+      showToast(error.message || "Unable to process selected image", "error");
+    }
   };
 
   return (
