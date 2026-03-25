@@ -79,8 +79,17 @@ export const appendLedgerEvent = async (
   eventType: string,
   payload: LedgerPayload,
 ): Promise<void> => {
-  const timestamp = new Date().toISOString();
+  // Ensure unique timestamp for each event (even in fast test runs)
   const entries = sortByTimestamp(await listSubDocs("issues", issueId, "ledger"));
+  let timestamp = new Date().toISOString();
+  if (entries.length > 0) {
+    const lastTs = new Date(String(entries[entries.length - 1].timestamp || entries[entries.length - 1].createdAt || 0)).getTime();
+    let candidate = new Date(timestamp).getTime();
+    if (candidate <= lastTs) {
+      candidate = lastTs + 1;
+      timestamp = new Date(candidate).toISOString();
+    }
+  }
   const previousHash = entries.length > 0 ? String(entries[entries.length - 1].hash || GENESIS_HASH) : GENESIS_HASH;
   const hash = computeHash(previousHash, timestamp, eventType, payload);
   const entryId = `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
