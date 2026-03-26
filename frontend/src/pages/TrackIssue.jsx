@@ -69,6 +69,15 @@ function TrackIssue() {
       ) : selected ? (
         <section className="panel grid gap-6 p-5 md:grid-cols-2">
           <div className="space-y-3">
+            {selected.image && (
+              <img
+                src={selected.image}
+                alt={selected.title}
+                className="mb-2 max-h-64 w-full rounded-soft object-cover border"
+                style={{ background: '#f3f4f6' }}
+                onError={e => (e.currentTarget.style.display = 'none')}
+              />
+            )}
             <p className="text-xs font-semibold text-primary">{selected.id}</p>
             <h2 className="text-lg font-semibold">{selected.title}</h2>
             <p className="text-sm text-slate-600">{selected.description}</p>

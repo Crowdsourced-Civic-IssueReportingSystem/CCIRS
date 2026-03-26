@@ -3,20 +3,39 @@ import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const links = [
-  { to: "/", label: "Home" },
-  { to: "/report", label: "Report Issue" },
-  { to: "/track", label: "Track" },
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/admin", label: "Transparency" },
-];
+
+function getLinks(user) {
+  const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
+  if (isAdmin) {
+    return [
+      { to: "/admin", label: "Transparency" },
+    ];
+  }
+  // Only show Dashboard, Report Issue, Transparency if logged in
+  const links = [
+    { to: "/", label: "Home" },
+    ...(user
+      ? [
+          { to: "/report", label: "Report Issue" },
+          { to: "/dashboard", label: "Dashboard" },
+          { to: "/admin", label: "Transparency" },
+        ]
+      : []),
+    { to: "/track", label: "Track" },
+  ];
+  return links;
+}
+
 
 function Navbar() {
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
-  const baseLinks = links;
+  const { user, logout } = useAuth();
+  const baseLinks = getLinks(user);
 
-  const authLinks = user
+  const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
+  const authLinks = isAdmin
+    ? []
+    : user
     ? [{ to: "/profile", label: "Profile" }]
     : [
         { to: "/login", label: "Login" },
@@ -42,6 +61,14 @@ function Navbar() {
               {link.label}
             </NavLink>
           ))}
+          {isAdmin && (
+            <button
+              onClick={logout}
+              className="ml-2 rounded-soft bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 transition"
+            >
+              Logout
+            </button>
+          )}
         </nav>
 
         <button
@@ -68,11 +95,18 @@ function Navbar() {
                 {link.label}
               </NavLink>
             ))}
+            {isAdmin && (
+              <button
+                onClick={logout}
+                className="mt-2 rounded-soft bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 transition"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </nav>
       )}
     </header>
   );
 }
-
 export default Navbar;

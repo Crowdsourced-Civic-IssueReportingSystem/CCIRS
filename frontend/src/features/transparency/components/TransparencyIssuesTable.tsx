@@ -37,18 +37,28 @@ export default function TransparencyIssuesTable({ issues, isAdmin, savingIssueId
               <td className="py-3 pr-3">{formatIssueDate(issue.createdAt as string | number | Date | undefined)}</td>
               <td className="py-3">
                 {isAdmin ? (
-                  <select
-                    disabled={savingIssueId === issue.id}
-                    value={issue.status || "OPEN"}
-                    onChange={(event) => onChangeStatus(issue.id || "", event.target.value)}
-                    className="rounded-soft border px-2 py-1 text-sm"
-                  >
-                    {STATUS_OPTIONS.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex gap-2 items-center">
+                    <select
+                      disabled={savingIssueId === issue.id}
+                      value={issue.status || "OPEN"}
+                      onChange={(event) => onChangeStatus(issue.id || "", event.target.value)}
+                      className="rounded-soft border px-2 py-1 text-sm"
+                      aria-label="Update status"
+                      title="Update status"
+                    >
+                      {STATUS_OPTIONS.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    <Link
+                      to={`/track?issueId=${encodeURIComponent(issue.id || "")}`}
+                      className="inline-block rounded-soft bg-primary px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700 transition"
+                    >
+                      View
+                    </Link>
+                  </div>
                 ) : (
                   <Link to={`/track?issueId=${encodeURIComponent(issue.id || "")}`} className="text-sm font-semibold text-primary">
                     Track

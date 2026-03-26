@@ -7,6 +7,8 @@ import { categories } from "../utils/dummyData";
 import { useIssues } from "../context/IssuesContext";
 import { useToast } from "../context/ToastContext";
 
+import { uploadImageToSupabase } from "../utils/supabaseUpload";
+
 function toDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -69,7 +71,11 @@ function ReportIssue() {
     event.preventDefault();
     if (!validateStep(3) || !canSubmit) return;
     try {
-      const issue = await submitIssue(form);
+      let imageUrl = "";
+      if (form.imageFile) {
+        imageUrl = await uploadImageToSupabase(form.imageFile);
+      }
+      const issue = await submitIssue({ ...form, imagePreview: imageUrl });
       showToast(`Issue submitted successfully. ID: ${issue.id}`, "success");
       setStep(1);
       setForm({

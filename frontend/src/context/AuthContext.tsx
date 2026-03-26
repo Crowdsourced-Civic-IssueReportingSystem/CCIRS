@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { fetchCurrentUser, loginUser, logoutUser, registerUser } from "../services/api";
+import { fetchCurrentUser, logoutUser } from "../services/api";
 import {
   clearAuthToken,
   clearStoredUser,
@@ -8,6 +8,14 @@ import {
   setStoredUser,
 } from "../services/auth";
 import type { AuthUser } from "../types/api";
+import { auth } from "../firebase";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  updateProfile as fbUpdateProfile,
+} from "firebase/auth";
+import { API_BASE_URL } from "../services/api";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -33,18 +41,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+
+  // Helper to sync user profile and get role from backend
+  const syncUserProfile = async (idToken: string): Promise<AuthUser> => {
+    const res = await fetch(`${API_BASE_URL}/auth/sync`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+    if (!res.ok) {
+      throw new Error("Failed to sync user profile");
+    }
+    const data = await res.json();
+    return data.user;
+  };
+
   const login = async ({ email, password }: { email: string; password: string }): Promise<AuthUser> => {
     setAuthBusy(true);
     try {
-      const response = await loginUser({ email, password });
-      const token = response?.tokens?.accessToken;
-      const nextUser = response?.user ?? null;
-
-      if (!token || !nextUser) {
-        throw new Error("Invalid login response");
-      }
-
-      setAuthToken(token);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await cred.user.getIdToken();
+      setAuthToken(idToken);
+      // Sync user profile and get role
+      const nextUser = await syncUserProfile(idToken);
       setStoredUser(nextUser);
       setUser(nextUser);
       return nextUser;
@@ -53,26 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async ({
-    name,
-    email,
-    password,
-  }: {
-    name: string;
-    email: string;
-    password: string;
-  }): Promise<AuthUser> => {
+  const register = async ({ name, email, password }: { name: string; email: string; password: string }): Promise<AuthUser> => {
     setAuthBusy(true);
     try {
-      const response = await registerUser({ name, email, password });
-      const token = response?.tokens?.accessToken;
-      const nextUser = response?.user ?? null;
-
-      if (!token || !nextUser) {
-        throw new Error("Invalid register response");
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      if (name) {
+        await fbUpdateProfile(cred.user, { displayName: name });
       }
-
-      setAuthToken(token);
+      const idToken = await cred.user.getIdToken();
+      setAuthToken(idToken);
+      // Sync user profile and get role
+      const nextUser = await syncUserProfile(idToken);
       setStoredUser(nextUser);
       setUser(nextUser);
       return nextUser;
@@ -98,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthBusy(true);
     try {
       try {
+        await signOut(auth);
         await logoutUser();
       } catch {
         // Ignore API logout errors; local token cleanup is authoritative for this UI.
